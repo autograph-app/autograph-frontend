@@ -4,6 +4,9 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
+import { useNotificationStore } from '@/store/notificationStore';
+import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
+import { toast } from 'sonner';
 import { 
   Sparkles, 
   Home, 
@@ -25,6 +28,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { token, user, logout } = useAuthStore();
+  const { unreadCount, fetchNotifications, addNotification } = useNotificationStore();
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
@@ -34,6 +38,49 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     });
     return () => cancelAnimationFrame(handle);
   }, []);
+
+  // Fetch initial notifications
+  useEffect(() => {
+    if (token) {
+      fetchNotifications();
+    }
+  }, [token, fetchNotifications]);
+
+  // SignalR Hub Connection Setup
+  useEffect(() => {
+    if (!token) return;
+
+    const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5036';
+    const connection = new HubConnectionBuilder()
+      .withUrl(`${API_URL}/hubs/notifications`, {
+        accessTokenFactory: () => useAuthStore.getState().token || '',
+        skipNegotiation: true,
+        transport: HttpTransportType.WebSockets,
+      })
+      .withAutomaticReconnect()
+      .build();
+
+    connection.on('ReceiveNotification', (notification: { id?: string; type: string; title: string; message: string; timestamp?: string }) => {
+      toast(notification.title || 'Notification', {
+        description: notification.message,
+      });
+
+      addNotification({
+        id: notification.id || Math.random().toString(),
+        type: notification.type,
+        title: notification.title,
+        message: notification.message,
+        isRead: false,
+        createdDate: notification.timestamp || new Date().toISOString(),
+      });
+    });
+
+    connection.start().catch((err) => console.error('SignalR Connection Error: ', err));
+
+    return () => {
+      connection.stop();
+    };
+  }, [token, addNotification]);
 
   useEffect(() => {
     if (mounted && !token) {
@@ -109,7 +156,12 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               >
                 <Icon className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-violet-400' : ''}`} />
                 {item.name}
-                {isActive && (
+                {item.name === 'Notifications' && unreadCount > 0 && (
+                  <span className="ml-auto bg-violet-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                    {unreadCount}
+                  </span>
+                )}
+                {isActive && item.name !== 'Notifications' && (
                   <span className="absolute right-3 h-1.5 w-1.5 rounded-full bg-violet-400 animate-pulse" />
                 )}
               </Link>
@@ -194,6 +246,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   <span className="flex items-center gap-3">
                     <Icon className="h-5 w-5" />
                     {item.name}
+                    {item.name === 'Notifications' && unreadCount > 0 && (
+                      <span className="bg-violet-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                        {unreadCount}
+                      </span>
+                    )}
                   </span>
                   <ChevronRight className="h-4 w-4 opacity-50" />
                 </Link>
