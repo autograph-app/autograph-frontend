@@ -1,14 +1,20 @@
 'use client';
 
+/* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { useAuthStore } from '@/store/authStore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Image as ImageIcon, Sparkles, Check, Info } from 'lucide-react';
+import { UploadCloud, Sparkles, Check, Info } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ContentPage() {
+  const router = useRouter();
+  const { user } = useAuthStore();
+  const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
@@ -27,22 +33,49 @@ export default function ContentPage() {
     setPreviewUrl(URL.createObjectURL(selectedFile));
   };
 
-  const handleSubmit = (e: React.FormEvent) => {
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
       toast.error('Please upload an image first.');
       return;
     }
+    if (!title.trim()) {
+      toast.error('Please enter a title.');
+      return;
+    }
 
     setIsUploading(true);
-    // Mock upload delay
-    setTimeout(() => {
+    try {
+      const { api } = await import('@/lib/api');
+      const formData = new FormData();
+      formData.append('title', title.trim());
+      if (description.trim()) {
+        formData.append('description', description.trim());
+      }
+      formData.append('file', file);
+
+      const response = await api.post('/contents', formData, {
+        headers: {
+          'Content-Type': 'multipart/form-data',
+        },
+      });
+
+      if (response.data?.success) {
+        toast.success('Artwork published successfully!');
+        setFile(null);
+        setPreviewUrl(null);
+        setTitle('');
+        setDescription('');
+        router.push(user ? `/profile/${user.userName}` : '/feed');
+      } else {
+        toast.error(response.data?.message || 'Failed to publish artwork.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'An error occurred during upload.');
+    } finally {
       setIsUploading(false);
-      toast.success('Content upload is mocked for Phase 1! The interface is fully configured.');
-      setFile(null);
-      setPreviewUrl(null);
-      setDescription('');
-    }, 1500);
+    }
   };
 
   return (
@@ -114,6 +147,20 @@ export default function ContentPage() {
                     </div>
                   )}
                 </div>
+              </div>
+
+              {/* Title Input */}
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                  Artwork Title
+                </label>
+                <Input
+                  value={title}
+                  onChange={(e) => setTitle(e.target.value)}
+                  placeholder="Enter artwork title..."
+                  required
+                  className="border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
+                />
               </div>
 
               {/* Description Input */}

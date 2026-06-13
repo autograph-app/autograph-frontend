@@ -413,7 +413,8 @@ export default function ProfilePage() {
                     {profile.contents.map((item) => (
                       <div 
                         key={item.id} 
-                        className="group relative rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-md transition-all duration-300 hover:scale-[1.02] hover:border-violet-500/30"
+                        onClick={() => router.push(`/contents/${item.id}`)}
+                        className="group relative rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-md transition-all duration-300 hover:scale-[1.02] hover:border-violet-500/30 cursor-pointer"
                       >
                         <div className="aspect-video w-full bg-zinc-900 relative">
                           <img 

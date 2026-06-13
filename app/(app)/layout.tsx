@@ -15,7 +15,8 @@ import {
   Loader2,
   Menu,
   X,
-  ChevronRight
+  ChevronRight,
+  Inbox
 } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
@@ -51,6 +52,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const navItems = [
     { name: 'Feed', href: '/feed', icon: Home },
     { name: 'Explore', href: '/explore', icon: Compass },
+    ...(user && user.accountType === 1 ? [{ name: 'Artist Inbox', href: '/inbox', icon: Inbox }] : []),
     { name: 'Notifications', href: '/notifications', icon: Bell },
     { name: 'Share Content', href: '/content', icon: PlusSquare },
     { name: 'My Profile', href: user ? `/profile/${user.userName}` : '/profile/me', icon: UserIcon },
