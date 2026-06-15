@@ -6,7 +6,10 @@
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "test:e2e": "playwright test",
+    "test:ui": "playwright test --project=responsive",
+    "test:functional": "playwright test --project=functional"
   },
   "dependencies": {
     "@hookform/resolvers": "^5.4.0",
@@ -31,6 +34,7 @@
     "zustand": "^5.0.14"
   },
   "devDependencies": {
+    "@playwright/test": "^1.41.2",
     "@tailwindcss/postcss": "^4",
     "@types/node": "^20.19.42",
     "@types/react": "^19",
