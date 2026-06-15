@@ -103,6 +103,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { name: 'Notifications', href: '/notifications', icon: Bell },
     { name: 'Share Content', href: '/content', icon: PlusSquare },
     { name: 'My Profile', href: user ? `/profile/${user.userName}` : '/profile/me', icon: UserIcon },
+    { name: 'Pricing', href: '/pricing', icon: Sparkles },
   ];
 
   const handleLogout = () => {
@@ -180,9 +181,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </AvatarFallback>
               </Avatar>
               <div className="min-w-0">
-                <p className="text-sm font-semibold truncate text-white leading-none">
-                  {user.displayName || user.userName}
-                </p>
+                <div className="flex items-center gap-1.5 min-w-0">
+                  <p className="text-sm font-semibold truncate text-white leading-none">
+                    {user.displayName || user.userName}
+                  </p>
+                  {user.isPremium && (
+                    <span className="flex-shrink-0 bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[9px] font-bold px-1.5 py-0.5 rounded-full border border-violet-400/25 animate-pulse">
+                      PRO
+                    </span>
+                  )}
+                </div>
                 <p className="text-xs text-zinc-400 truncate mt-1">
                   {user.accountType === 1 ? 'Artist' : 'Fan'}
                 </p>
@@ -209,12 +217,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         <div className="flex items-center gap-3">
           {user && (
-            <Avatar className="h-8 w-8 border border-white/10">
-              <AvatarImage src={user.avatarUrl} alt={user.displayName || user.userName} />
-              <AvatarFallback className="bg-zinc-800 text-white text-xs font-bold">
-                {getInitials(user.displayName || user.userName)}
-              </AvatarFallback>
-            </Avatar>
+            <div className="relative">
+              <Avatar className="h-8 w-8 border border-white/10">
+                <AvatarImage src={user.avatarUrl} alt={user.displayName || user.userName} />
+                <AvatarFallback className="bg-zinc-800 text-white text-xs font-bold">
+                  {getInitials(user.displayName || user.userName)}
+                </AvatarFallback>
+              </Avatar>
+              {user.isPremium && (
+                <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[8px] font-bold border border-black">
+                  ★
+                </span>
+              )}
+            </div>
           )}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
