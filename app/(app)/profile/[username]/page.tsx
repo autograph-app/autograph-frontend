@@ -459,8 +459,16 @@ export default function ProfilePage() {
             </Tabs>
           ) : (
             /* Fan mode display */
-            <Tabs defaultValue="activity" className="w-full">
+            <Tabs defaultValue={profile.contents && profile.contents.length > 0 ? "gallery" : "activity"} className="w-full">
               <TabsList className="bg-zinc-950/80 border border-white/10 rounded-xl p-1 mb-6">
+                {profile.contents && profile.contents.length > 0 && (
+                  <TabsTrigger value="gallery" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
+                    <span className="flex items-center gap-2">
+                      <Grid className="h-4 w-4" />
+                      Gallery
+                    </span>
+                  </TabsTrigger>
+                )}
                 <TabsTrigger value="activity" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
                   Activity
                 </TabsTrigger>
@@ -469,6 +477,42 @@ export default function ProfilePage() {
                 </TabsTrigger>
               </TabsList>
               
+              {profile.contents && profile.contents.length > 0 && (
+                <TabsContent value="gallery" className="outline-none space-y-4">
+                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                    {profile.contents.map((item) => (
+                      <div 
+                        key={item.id} 
+                        onClick={() => router.push(`/contents/${item.id}`)}
+                        className="group relative rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-md transition-all duration-300 hover:scale-[1.02] hover:border-violet-500/30 cursor-pointer"
+                      >
+                        <div className="aspect-video w-full bg-zinc-900 relative">
+                          <img 
+                            src={item.imageUrl} 
+                            alt={item.description} 
+                            className="object-cover w-full h-full"
+                          />
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
+                            <p className="text-xs text-white truncate max-w-full font-medium">
+                              {item.description}
+                            </p>
+                          </div>
+                        </div>
+                        <div className="p-4 flex items-center justify-between border-t border-white/5">
+                          <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
+                            Published Post
+                          </span>
+                          <button className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-rose-500 transition-colors">
+                            <Heart className={`h-4 w-4 ${item.isLikedByCurrentUser ? 'fill-rose-500 text-rose-500' : ''}`} />
+                            <strong>{item.likesCount}</strong>
+                          </button>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                </TabsContent>
+              )}
+
               <TabsContent value="activity" className="outline-none text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
                 <Sparkles className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
                 <p className="text-zinc-500 text-sm">No fan activity records found.</p>
