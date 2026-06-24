@@ -39,6 +39,7 @@ interface SignatureDto {
   signedAt: string;
   hash: string;
   watermarkUrl: string;
+  certificateUrl?: string;
 }
 
 interface ContentDetailDto {
@@ -385,6 +386,15 @@ export default function ContentDetailPage() {
                     </div>
                   </div>
                 </div>
+
+                {content.signature?.certificateUrl && (
+                  <Button 
+                    onClick={() => window.open(content.signature?.certificateUrl, '_blank')}
+                    className="w-full bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-lg shadow-lg flex items-center justify-center gap-2 cursor-pointer mt-2"
+                  >
+                    <Download className="h-4 w-4" /> Download PDF Certificate
+                  </Button>
+                )}
 
                 <div className="text-[10px] text-zinc-500 italic bg-white/5 p-2 rounded-lg leading-relaxed">
                   This asset carries a visual watermark in the bottom-right corner stamped with SkiaSharp at compile time. The hash validates the original upload binary.

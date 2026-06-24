@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useRef, useCallback } from 'react';
+import React, { useEffect, useState, useRef } from 'react';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { 
@@ -70,6 +70,7 @@ export default function ProfilePage() {
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
+  const [followingLoading, setFollowingLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   // Edit form state
@@ -234,6 +235,50 @@ export default function ProfilePage() {
     }
   };
 
+  const toggleFollow = async () => {
+    if (!profile || followingLoading) return;
+    setFollowingLoading(true);
+
+    const wasFollowing = profile.isFollowing;
+    const originalFollowersCount = profile.followersCount;
+
+    // Optimistically toggle
+    setProfile(prev => {
+      if (!prev) return null;
+      return {
+        ...prev,
+        isFollowing: !wasFollowing,
+        followersCount: wasFollowing 
+          ? Math.max(0, originalFollowersCount - 1) 
+          : originalFollowersCount + 1
+      };
+    });
+
+    try {
+      if (wasFollowing) {
+        await api.delete(`/users/${profile.id}/follow`);
+        toast.success(`Unfollowed @${profile.userName}`);
+      } else {
+        await api.post(`/users/${profile.id}/follow`);
+        toast.success(`Following @${profile.userName}`);
+      }
+    } catch (error: unknown) {
+      console.error('Follow action failed:', error);
+      // Revert optimistically
+      setProfile(prev => {
+        if (!prev) return null;
+        return {
+          ...prev,
+          isFollowing: wasFollowing,
+          followersCount: originalFollowersCount
+        };
+      });
+      toast.error('Follow action failed.');
+    } finally {
+      setFollowingLoading(false);
+    }
+  };
+
   const getInitials = (name: string) => {
     return name.slice(0, 2).toUpperCase();
   };
@@ -346,6 +391,8 @@ export default function ProfilePage() {
             </>
           ) : (
             <Button 
+              onClick={toggleFollow}
+              disabled={followingLoading}
               className={`rounded-xl px-6 py-5 font-semibold transition-all duration-300 cursor-pointer ${
                 profile.isFollowing 
                   ? 'bg-zinc-800 hover:bg-zinc-700 text-white border border-white/10' 

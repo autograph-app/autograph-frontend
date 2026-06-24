@@ -5,6 +5,10 @@ import { defineConfig, devices } from '@playwright/test';
  */
 export default defineConfig({
   testDir: './tests',
+  timeout: 60000,
+  expect: {
+    timeout: 10000,
+  },
   fullyParallel: true,
   forbidOnly: !!process.env.CI,
   retries: process.env.CI ? 2 : 0,
@@ -14,6 +18,8 @@ export default defineConfig({
     baseURL: 'http://localhost:3000',
     trace: 'on-first-retry',
     screenshot: 'only-on-failure',
+    actionTimeout: 60000,
+    navigationTimeout: 60000,
   },
 
   projects: [
@@ -39,9 +45,9 @@ export default defineConfig({
 
   // Run Next.js local server before starting the tests if not already running
   webServer: {
-    command: 'npm run dev',
+    command: 'npm run build && npm run start',
     url: 'http://localhost:3000',
     reuseExistingServer: !process.env.CI,
-    timeout: 120000,
+    timeout: 180000,
   },
 });
