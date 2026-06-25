@@ -127,7 +127,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Desktop Sidebar */}
       <aside className="hidden md:flex flex-col w-64 bg-zinc-950/80 border-r border-white/10 p-6 z-20 backdrop-blur-md sticky top-0 h-screen">
         {/* Brand Logo */}
-        <div className="flex items-center gap-3 mb-10">
+        <div 
+          onClick={() => router.push('/feed')} 
+          className="flex items-center gap-3 mb-10 cursor-pointer hover:opacity-90 active:scale-95 transition-all select-none"
+        >
           <div className="flex h-10 w-10 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 to-fuchsia-600 shadow-md shadow-violet-500/20 ring-1 ring-white/10">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
@@ -150,7 +153,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               <Link
                 key={item.name}
                 href={item.href}
-                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 relative group overflow-hidden ${
+                className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 active:scale-[0.98] relative group overflow-hidden ${
                   isActive 
                     ? 'text-white bg-gradient-to-r from-violet-600/20 to-fuchsia-600/10 border-l-2 border-violet-500 shadow-md shadow-violet-500/5' 
                     : 'text-zinc-400 hover:text-white hover:bg-white/5'
@@ -210,7 +213,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Mobile Top Header */}
       <header className="md:hidden flex items-center justify-between bg-zinc-950/90 border-b border-white/10 px-5 py-4 sticky top-0 z-30 backdrop-blur-md w-full">
-        <div className="flex items-center gap-2">
+        <div 
+          onClick={() => router.push('/feed')} 
+          className="flex items-center gap-2 cursor-pointer hover:opacity-90 active:scale-95 transition-all select-none"
+        >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-violet-600 to-fuchsia-600">
             <Sparkles className="h-4 w-4 text-white" />
           </div>
@@ -253,7 +259,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   key={item.name}
                   href={item.href}
                   onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center justify-between px-4 py-3.5 rounded-xl text-base font-semibold ${
+                  className={`flex items-center justify-between px-4 py-3.5 rounded-xl text-base font-semibold active:scale-[0.98] transition-all ${
                     isActive 
                       ? 'text-white bg-white/10' 
                       : 'text-zinc-400 hover:text-white hover:bg-white/5'
@@ -288,7 +294,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
       {/* Main Content Area */}
       <main className="flex-1 min-w-0 bg-black min-h-[calc(100vh-65px)] md:min-h-screen p-4 sm:p-6 md:p-8 overflow-y-auto">
-        <div className="max-w-5xl mx-auto h-full flex flex-col">
+        <div className="max-w-5xl mx-auto h-full flex flex-col animate-soft-fade">
           {children}
         </div>
       </main>

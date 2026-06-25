@@ -63,20 +63,23 @@ export default function RootPage() {
 
       {/* Navigation Header */}
       <header className="w-full max-w-7xl mx-auto px-6 py-5 flex items-center justify-between border-b border-white/5 relative z-10">
-        <div className="flex items-center gap-2.5">
+        <div 
+          onClick={() => window.location.reload()} 
+          className="flex items-center gap-2.5 cursor-pointer hover:opacity-90 active:scale-95 transition-all select-none"
+        >
           <div className="flex h-9 w-9 items-center justify-center rounded-xl bg-gradient-to-tr from-violet-600 to-fuchsia-600">
             <Sparkles className="h-5 w-5 text-white" />
           </div>
           <span className="font-extrabold text-lg tracking-wider text-white">AUTOGRAPH</span>
         </div>
-        <div className="flex items-center gap-4">
+        <div className="flex items-center gap-2 sm:gap-4">
           <Link href="/login">
-            <Button variant="ghost" className="text-sm font-semibold text-zinc-400 hover:text-white cursor-pointer">
+            <Button variant="ghost" className="text-xs sm:text-sm font-semibold text-zinc-400 hover:text-white cursor-pointer px-2 sm:px-4 h-8 sm:h-10 active:scale-95 transition-all duration-150">
               Giriş Yap
             </Button>
           </Link>
           <Link href="/register">
-            <Button className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-sm font-semibold px-5 py-5 rounded-xl cursor-pointer shadow-lg shadow-violet-500/10">
+            <Button className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-xs sm:text-sm font-semibold px-3 py-1.5 sm:px-5 sm:py-2.5 h-8 sm:h-11 rounded-lg sm:rounded-xl cursor-pointer shadow-lg shadow-violet-500/10 active:scale-95 transition-all duration-150">
               Kayıt Ol
             </Button>
           </Link>
@@ -84,7 +87,7 @@ export default function RootPage() {
       </header>
 
       {/* Main Hero & Content Section */}
-      <main className="flex-1 max-w-6xl mx-auto px-6 flex flex-col items-center justify-center py-16 relative z-10 text-center space-y-12">
+      <main className="flex-1 max-w-6xl mx-auto px-6 flex flex-col items-center justify-center py-16 relative z-10 text-center space-y-12 animate-soft-fade">
         
         {/* Banner Tag */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-xs font-semibold text-violet-400">
@@ -143,7 +146,7 @@ export default function RootPage() {
                 <Button 
                   type="submit" 
                   disabled={submitLoading}
-                  className="bg-white hover:bg-zinc-200 text-black h-12 px-6 rounded-xl font-bold transition-all duration-300 cursor-pointer shadow-lg flex items-center justify-center gap-1.5"
+                  className="bg-white hover:bg-zinc-200 text-black h-12 px-6 rounded-xl font-bold transition-all duration-300 active:scale-95 cursor-pointer shadow-lg flex items-center justify-center gap-1.5"
                 >
                   {submitLoading ? (
                     <Loader2 className="h-4 w-4 animate-spin" />

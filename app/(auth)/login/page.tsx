@@ -99,13 +99,16 @@ export default function LoginPage() {
       <div className="absolute bottom-[-20%] right-[-10%] h-[600px] w-[600px] rounded-full bg-fuchsia-600/10 blur-[120px]" />
       <div className="absolute top-[40%] left-[50%] h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full bg-emerald-500/5 blur-[100px]" />
 
-      <div className="z-10 w-full max-w-md">
+      <div className="z-10 w-full max-w-md animate-soft-fade">
         {/* Logo / Brand header */}
-        <div className="mb-8 flex flex-col items-center text-center">
-          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30 ring-1 ring-white/20 transition-transform duration-300 hover:scale-105">
+        <div 
+          onClick={() => window.location.reload()} 
+          className="mb-8 flex flex-col items-center text-center cursor-pointer select-none group"
+        >
+          <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30 ring-1 ring-white/20 transition-transform duration-300 group-hover:scale-105 active:scale-95">
             <Sparkles className="h-6 w-6 text-white" />
           </div>
-          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl">
+          <h2 className="mt-4 text-3xl font-extrabold tracking-tight text-white sm:text-4xl group-hover:opacity-90">
             AUTOGRAPH
           </h2>
           <p className="mt-2 text-sm text-zinc-400">
@@ -181,11 +184,11 @@ export default function LoginPage() {
               </div>
             </CardContent>
 
-            <CardFooter className="flex flex-col space-y-4">
+            <CardFooter className="flex flex-col space-y-4 bg-transparent border-t-0 pt-0">
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-11 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-violet-600/20 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full h-11 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-violet-600/20 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
