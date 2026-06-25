@@ -4,6 +4,7 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
+import { api } from '@/lib/api';
 import { useNotificationStore } from '@/store/notificationStore';
 import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
 import { toast } from 'sonner';
@@ -114,9 +115,18 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { name: 'My Profile', href: user ? `/profile/${user.userName}` : '/profile/me', icon: UserIcon },
   ];
 
-  const handleLogout = () => {
-    logout();
-    router.push('/login');
+  const handleLogout = async () => {
+    try {
+      const refreshToken = useAuthStore.getState().refreshToken;
+      if (refreshToken) {
+        await api.post('/auth/revoke-token', { token: refreshToken });
+      }
+    } catch (err) {
+      console.error('Failed to revoke token on backend:', err);
+    } finally {
+      logout();
+      router.push('/login');
+    }
   };
 
   const getInitials = (name: string) => {

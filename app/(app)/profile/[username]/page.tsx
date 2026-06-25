@@ -19,7 +19,8 @@ import {
   Settings,
   Sparkles,
   Info,
-  EyeOff
+  EyeOff,
+  LogOut
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/authStore';
@@ -67,13 +68,27 @@ interface ProfileData {
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { user: currentUser, updateUser } = useAuthStore();
+  const { user: currentUser, updateUser, logout } = useAuthStore();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [followingLoading, setFollowingLoading] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+
+  const handleLogout = async () => {
+    try {
+      const refreshToken = useAuthStore.getState().refreshToken;
+      if (refreshToken) {
+        await api.post('/auth/revoke-token', { token: refreshToken });
+      }
+    } catch (err) {
+      console.error('Failed to revoke token on backend:', err);
+    } finally {
+      logout();
+      router.push('/login');
+    }
+  };
 
   // Edit form state
   const [editDisplayName, setEditDisplayName] = useState('');
@@ -410,6 +425,15 @@ export default function ProfilePage() {
               >
                 <Edit3 className="h-4 w-4" />
                 Edit Profile
+              </Button>
+              <Button 
+                onClick={handleLogout} 
+                variant="destructive"
+                className="rounded-xl px-5 py-5 flex items-center gap-2 font-semibold transition-all duration-300 cursor-pointer shadow-lg shadow-rose-600/10 active:scale-95"
+                id="profile-logout-btn"
+              >
+                <LogOut className="h-4 w-4" />
+                Log Out
               </Button>
             </>
           ) : (

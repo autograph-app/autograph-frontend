@@ -157,4 +157,86 @@ test.describe('Kullanıcı Gerçek Dünya Senaryoları (E2E)', () => {
       }
     }
   });
+
+  test('Senaryo 5: Oturumu Kapatma (Logout) Akışı', async ({ page }) => {
+    // 1. Giriş sayfasına git (Origin eşleşmesi için)
+    await page.goto('/login');
+
+    // 2. /auth/revoke-token isteklerini mock'la
+    await page.route('**/api/v1/auth/revoke-token', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({ success: true, message: 'Token revoked successfully.' }),
+      });
+    });
+
+    // /users/profile isteklerini mock'la
+    await page.route('**/api/v1/users/profile', async (route) => {
+      await route.fulfill({
+        status: 200,
+        contentType: 'application/json',
+        body: JSON.stringify({
+          success: true,
+          data: {
+            id: 'mock-id-123',
+            userName: 'mockfan',
+            displayName: 'Mock Fan User',
+            avatarUrl: null,
+            bio: 'Mock Bio description',
+            accountType: 0, // Fan
+            isVerified: true,
+            isPremium: true,
+            followersCount: 10,
+            followingCount: 5,
+            isFollowing: false,
+            contents: []
+          }
+        }),
+      });
+    });
+
+    // 3. LocalStorage'a sahte oturum verisi enjekte et
+    await page.evaluate(() => {
+      const mockAuth = {
+        state: {
+          token: 'mock-jwt-token',
+          refreshToken: 'mock-refresh-token',
+          user: {
+            id: 'mock-id-123',
+            userName: 'mockfan',
+            email: 'mockfan@autograph.com',
+            displayName: 'Mock Fan User',
+            accountType: 0, // Fan
+            isVerified: true,
+            isPremium: true,
+          },
+        },
+        version: 0,
+      };
+      localStorage.setItem('autograph-auth', JSON.stringify(mockAuth));
+    });
+
+    // 4. Profil sayfasına git (kendi profilimiz)
+    await page.goto('/profile/me');
+
+    // 5. Profil sayfasındaki Log Out butonunun görünür olduğunu kontrol et ve tıkla
+    const logoutBtn = page.locator('#profile-logout-btn');
+    await expect(logoutBtn).toBeVisible();
+    await logoutBtn.click();
+
+    // 6. Giriş sayfasına yönlendirildiğimizi doğrula
+    await expect(page).toHaveURL(/.*login/);
+
+    // 7. LocalStorage'ın temizlendiğini doğrula
+    const authState = await page.evaluate(() => {
+      return localStorage.getItem('autograph-auth');
+    });
+    if (authState) {
+      const parsed = JSON.parse(authState);
+      expect(parsed.state.token).toBeNull();
+      expect(parsed.state.user).toBeNull();
+    }
+  });
 });
+
