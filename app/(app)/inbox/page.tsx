@@ -15,7 +15,8 @@ import {
   Loader2,
   CheckCircle,
   XCircle,
-  ExternalLink
+  ExternalLink,
+  Image as ImageIcon
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
@@ -23,11 +24,13 @@ import { Card, CardContent } from '@/components/ui/card';
 import { Avatar, AvatarFallback } from '@/components/ui/avatar';
 import { Badge } from '@/components/ui/badge';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import { Dialog, DialogContent, DialogTitle } from '@/components/ui/dialog';
 
 interface SignatureRequestDto {
   id: string;
   contentId: string;
   contentTitle: string;
+  contentImageUrl: string;
   fanId: string;
   fanName: string;
   artistId: string;
@@ -43,6 +46,7 @@ export default function ArtistInboxPage() {
   const [requests, setRequests] = useState<SignatureRequestDto[]>([]);
   const [loading, setLoading] = useState(true);
   const [processingId, setProcessingId] = useState<string | null>(null);
+  const [previewImage, setPreviewImage] = useState<{ title: string; url: string } | null>(null);
 
   const fetchRequests = async () => {
     setLoading(true);
@@ -172,6 +176,20 @@ export default function ArtistInboxPage() {
                       </div>
 
                       <div className="flex items-center gap-2 p-2 bg-black/40 rounded-lg border border-white/5 max-w-md">
+                        {req.contentImageUrl ? (
+                          <button
+                            type="button"
+                            onClick={() => setPreviewImage({ title: req.contentTitle, url: req.contentImageUrl })}
+                            className="h-11 w-11 rounded-md overflow-hidden border border-white/10 shrink-0 cursor-pointer"
+                            aria-label="Preview artwork"
+                          >
+                            <img src={req.contentImageUrl} alt={req.contentTitle} className="h-full w-full object-cover" />
+                          </button>
+                        ) : (
+                          <div className="h-11 w-11 rounded-md border border-white/10 bg-zinc-900/80 flex items-center justify-center shrink-0">
+                            <ImageIcon className="h-4 w-4 text-zinc-500" />
+                          </div>
+                        )}
                         <FileText className="h-4 w-4 text-zinc-500 shrink-0" />
                         <span className="text-xs text-zinc-400 truncate">
                           Artwork: <strong className="text-white hover:underline cursor-pointer" onClick={() => router.push(`/contents/${req.contentId}`)}>{req.contentTitle}</strong>
@@ -270,6 +288,25 @@ export default function ArtistInboxPage() {
           )}
         </TabsContent>
       </Tabs>
+
+      <Dialog open={previewImage !== null} onOpenChange={(open) => !open && setPreviewImage(null)}>
+        <DialogContent className="max-w-3xl p-0 bg-zinc-950 border border-white/10 overflow-hidden">
+          <div className="px-4 py-3 border-b border-white/10 bg-zinc-900/70">
+            <DialogTitle className="text-sm font-bold text-white truncate">
+              {previewImage?.title || 'Artwork Preview'}
+            </DialogTitle>
+          </div>
+          <div className="bg-black/70 max-h-[75vh] overflow-auto">
+            {previewImage && (
+              <img
+                src={previewImage.url}
+                alt={previewImage.title}
+                className="w-full h-auto object-contain"
+              />
+            )}
+          </div>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
