@@ -22,7 +22,6 @@ import {
   ChevronRight,
   Inbox
 } from 'lucide-react';
-import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import FeedbackModal from '@/components/layout/FeedbackModal';
 
@@ -116,6 +115,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   ];
 
   const handleLogout = async () => {
+    if (!window.confirm('Cikis yapmak istediginize emin misiniz?')) {
+      return;
+    }
+
     try {
       const refreshToken = useAuthStore.getState().refreshToken;
       if (refreshToken) {
@@ -306,17 +309,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   </Link>
                 );
               })}
-          </nav>
-          <div className="border-t border-white/10 pt-6 mt-auto">
-            <Button
-              onClick={handleLogout}
-              variant="destructive"
-              className="w-full h-11 flex items-center justify-center gap-2 cursor-pointer"
+
+            <button
+              onClick={() => {
+                setIsMobileMenuOpen(false);
+                handleLogout();
+              }}
+              className="w-full flex items-center justify-between px-4 py-3.5 rounded-xl text-base font-semibold active:scale-[0.98] transition-all text-rose-300 hover:text-rose-200 hover:bg-rose-500/10"
+              type="button"
             >
-              <LogOut className="h-4 w-4" />
-              Sign Out
-            </Button>
-          </div>
+              <span className="flex items-center gap-3">
+                <LogOut className="h-5 w-5" />
+                Sign Out
+              </span>
+              <ChevronRight className="h-4 w-4 opacity-50" />
+            </button>
+          </nav>
         </div>
       )}
 

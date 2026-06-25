@@ -78,6 +78,10 @@ export default function ProfilePage() {
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const handleLogout = async () => {
+    if (!window.confirm('Cikis yapmak istediginize emin misiniz?')) {
+      return;
+    }
+
     try {
       const refreshToken = useAuthStore.getState().refreshToken;
       if (refreshToken) {
