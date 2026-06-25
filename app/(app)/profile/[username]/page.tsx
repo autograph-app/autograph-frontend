@@ -61,6 +61,7 @@ interface ProfileData {
   isPremium: boolean;
   followersCount: number;
   followingCount: number;
+  signatureRequestCount: number;
   isFollowing: boolean;
   contents: ContentItem[];
 }
@@ -411,6 +412,12 @@ export default function ProfilePage() {
               <span>
                 <strong>{profile.followingCount}</strong> following
               </span>
+              {profile.accountType === 1 && (
+                <span className="flex items-center gap-1.5" title="Prestige score based on incoming signature requests">
+                  <Sparkles className="h-4 w-4 text-amber-300" />
+                  <strong>{profile.signatureRequestCount}</strong> prestige
+                </span>
+              )}
             </div>
           </div>
         </div>

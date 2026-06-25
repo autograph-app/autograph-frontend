@@ -189,6 +189,7 @@ test.describe('Kullanıcı Gerçek Dünya Senaryoları (E2E)', () => {
             isPremium: true,
             followersCount: 10,
             followingCount: 5,
+            signatureRequestCount: 3,
             isFollowing: false,
             contents: []
           }
