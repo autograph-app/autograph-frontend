@@ -44,11 +44,25 @@ export default function FeedPage() {
   const [hasMore, setHasMore] = useState(true);
 
   // Suggested creators list with functional follow actions
-  const [suggestions, setSuggestions] = useState<SuggestedCreator[]>([
-    { id: '11111111-1111-1111-1111-111111111111', name: 'Sasha Gray', username: 'sashagray', initials: 'SG', isFollowing: false },
-    { id: '22222222-2222-2222-2222-222222222222', name: 'Marcus Aurelius', username: 'marcus', initials: 'MA', isFollowing: false },
-    { id: '33333333-3333-3333-3333-333333333333', name: 'Alice Liddell', username: 'alice', initials: 'AL', isFollowing: false },
-  ]);
+  const [suggestions, setSuggestions] = useState<SuggestedCreator[]>([]);
+
+  const fetchSuggestions = async () => {
+    try {
+      const response = await api.get('/users/artists');
+      if (response.data?.success) {
+        const fetched = response.data.data.map((art: { id: string; displayName?: string; userName: string }) => ({
+          id: art.id,
+          name: art.displayName || art.userName,
+          username: art.userName,
+          initials: (art.displayName || art.userName).slice(0, 2).toUpperCase(),
+          isFollowing: false,
+        }));
+        setSuggestions(fetched);
+      }
+    } catch (err) {
+      console.error('Failed to load artist suggestions:', err);
+    }
+  };
 
   const fetchFeed = useCallback(async (pageIndex: number, append = false) => {
     if (pageIndex === 0) setLoading(true);
@@ -89,6 +103,7 @@ export default function FeedPage() {
   useEffect(() => {
     const handle = requestAnimationFrame(() => {
       fetchFeed(0);
+      fetchSuggestions();
     });
     return () => cancelAnimationFrame(handle);
   }, [fetchFeed]);

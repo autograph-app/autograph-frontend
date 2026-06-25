@@ -59,7 +59,7 @@ export default function FeedbackModal() {
       {/* Floating Action Button */}
       <button
         onClick={() => setIsOpen(true)}
-        className="fixed bottom-6 right-6 z-50 flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-full p-3.5 sm:px-5 sm:py-3.5 shadow-lg shadow-violet-500/20 cursor-pointer transition-all hover:scale-105 active:scale-95 duration-200 border border-white/10"
+        className="fixed bottom-20 md:bottom-6 right-6 z-50 flex items-center justify-center gap-2 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white rounded-full p-3.5 sm:px-5 sm:py-3.5 shadow-lg shadow-violet-500/20 cursor-pointer transition-all hover:scale-105 active:scale-95 duration-200 border border-white/10"
         title="Geri Bildirim Gönder"
       >
         <MessageSquare className="h-5 w-5" />

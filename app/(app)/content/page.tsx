@@ -8,7 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/com
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
-import { UploadCloud, Sparkles, Check, Info } from 'lucide-react';
+import { UploadCloud, Sparkles, Check, Info, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
 
 export default function ContentPage() {
@@ -90,7 +90,18 @@ export default function ContentPage() {
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
         {/* Creation Form */}
-        <Card className="lg:col-span-2 border-white/10 bg-zinc-950/60 backdrop-blur-md">
+        <Card className="lg:col-span-2 border-white/10 bg-zinc-950/60 backdrop-blur-md relative overflow-hidden">
+          {isUploading && (
+            <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-300 select-none">
+              <Loader2 className="h-10 w-10 animate-spin text-violet-500" />
+              <div className="text-center space-y-1">
+                <p className="text-white font-bold text-sm">Publishing Artwork...</p>
+                <p className="text-zinc-400 text-xs max-w-xs px-4">
+                  Please wait while we optimize your image and run safety checks.
+                </p>
+              </div>
+            </div>
+          )}
           <CardHeader>
             <CardTitle className="text-lg font-bold text-white">Upload New Artwork</CardTitle>
             <CardDescription className="text-zinc-400 text-xs">
@@ -105,11 +116,13 @@ export default function ContentPage() {
                   Artwork Image
                 </label>
                 <div 
-                  onClick={() => document.getElementById('artwork-input')?.click()}
-                  className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center cursor-pointer transition-all duration-300 ${
-                    previewUrl 
-                      ? 'border-violet-500 bg-violet-500/5' 
-                      : 'border-white/10 hover:border-white/20 bg-black/40'
+                  onClick={() => !isUploading && document.getElementById('artwork-input')?.click()}
+                  className={`border-2 border-dashed rounded-2xl p-8 flex flex-col items-center justify-center transition-all duration-300 ${
+                    isUploading 
+                      ? 'cursor-not-allowed opacity-50 border-white/5 bg-zinc-900/10'
+                      : previewUrl 
+                        ? 'border-violet-500 bg-violet-500/5 cursor-pointer' 
+                        : 'border-white/10 hover:border-white/20 bg-black/40 cursor-pointer'
                   }`}
                 >
                   <input
@@ -118,6 +131,7 @@ export default function ContentPage() {
                     className="hidden"
                     onChange={handleFileChange}
                     accept="image/*"
+                    disabled={isUploading}
                   />
                   {previewUrl ? (
                     <div className="space-y-4 text-center w-full max-w-sm">
@@ -130,6 +144,7 @@ export default function ContentPage() {
                         variant="outline" 
                         size="sm" 
                         className="h-8 border-white/10 text-xs hover:bg-white/5 cursor-pointer"
+                        disabled={isUploading}
                         onClick={(e) => {
                           e.stopPropagation();
                           setFile(null);
@@ -159,6 +174,7 @@ export default function ContentPage() {
                   onChange={(e) => setTitle(e.target.value)}
                   placeholder="Enter artwork title..."
                   required
+                  disabled={isUploading}
                   className="border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
                 />
               </div>
@@ -172,6 +188,7 @@ export default function ContentPage() {
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
                   placeholder="Describe your digital asset or canvas details..."
+                  disabled={isUploading}
                   className="min-h-[100px] border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
                 />
               </div>
@@ -179,7 +196,7 @@ export default function ContentPage() {
               <Button
                 type="submit"
                 disabled={isUploading || !file}
-                className="w-full h-11 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-violet-600/20 cursor-pointer"
+                className="w-full h-11 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-violet-600/20 active:scale-95 transition-all duration-150 cursor-pointer"
               >
                 {isUploading ? 'Publishing...' : 'Publish to Gallery'}
               </Button>

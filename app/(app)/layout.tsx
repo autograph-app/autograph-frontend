@@ -107,6 +107,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { name: 'Pricing', href: '/pricing', icon: Sparkles },
   ];
 
+  const bottomNavItems = [
+    { name: 'Feed', href: '/feed', icon: Home },
+    { name: 'Explore', href: '/explore', icon: Compass },
+    { name: 'Share Content', href: '/content', icon: PlusSquare },
+    { name: 'My Profile', href: user ? `/profile/${user.userName}` : '/profile/me', icon: UserIcon },
+  ];
+
   const handleLogout = () => {
     logout();
     router.push('/login');
@@ -224,7 +231,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         </div>
         <div className="flex items-center gap-3">
           {user && (
-            <div className="relative">
+            <Link 
+              href="/notifications" 
+              className="relative cursor-pointer transition-transform duration-200 active:scale-95 select-none"
+              id="mobile-notification-avatar"
+            >
               <Avatar className="h-8 w-8 border border-white/10">
                 <AvatarImage src={user.avatarUrl} alt={user.displayName || user.userName} />
                 <AvatarFallback className="bg-zinc-800 text-white text-xs font-bold">
@@ -232,11 +243,16 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 </AvatarFallback>
               </Avatar>
               {user.isPremium && (
-                <span className="absolute -bottom-1 -right-1 flex h-3.5 w-3.5 items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[8px] font-bold border border-black">
+                <span className="absolute -bottom-1 -right-1 flex h-3 w-3 items-center justify-center rounded-full bg-gradient-to-r from-violet-600 to-fuchsia-600 text-white text-[7px] font-bold border border-black z-10">
                   ★
                 </span>
               )}
-            </div>
+              {unreadCount > 0 && (
+                <span className="absolute -top-1.5 -right-1.5 flex h-4.5 min-w-[18px] items-center justify-center rounded-full bg-violet-600 text-white text-[9px] font-bold px-1 border border-zinc-950 animate-pulse shadow-md shadow-violet-500/20 z-10">
+                  {unreadCount > 9 ? '9+' : unreadCount}
+                </span>
+              )}
+            </Link>
           )}
           <button
             onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
@@ -251,33 +267,35 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {isMobileMenuOpen && (
         <div className="md:hidden fixed inset-0 top-[65px] bg-black/95 z-30 flex flex-col p-6 backdrop-blur-lg border-t border-white/5 animate-in fade-in slide-in-from-top-4 duration-300">
           <nav className="space-y-2 flex-1">
-            {navItems.map((item) => {
-              const Icon = item.icon;
-              const isActive = pathname === item.href || (item.name === 'My Profile' && pathname.startsWith('/profile'));
-              return (
-                <Link
-                  key={item.name}
-                  href={item.href}
-                  onClick={() => setIsMobileMenuOpen(false)}
-                  className={`flex items-center justify-between px-4 py-3.5 rounded-xl text-base font-semibold active:scale-[0.98] transition-all ${
-                    isActive 
-                      ? 'text-white bg-white/10' 
-                      : 'text-zinc-400 hover:text-white hover:bg-white/5'
-                  }`}
-                >
-                  <span className="flex items-center gap-3">
-                    <Icon className="h-5 w-5" />
-                    {item.name}
-                    {item.name === 'Notifications' && unreadCount > 0 && (
-                      <span className="bg-violet-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
-                        {unreadCount}
-                      </span>
-                    )}
-                  </span>
-                  <ChevronRight className="h-4 w-4 opacity-50" />
-                </Link>
-              );
-            })}
+            {navItems
+              .filter((item) => !['Feed', 'Explore', 'Share Content', 'My Profile'].includes(item.name))
+              .map((item) => {
+                const Icon = item.icon;
+                const isActive = pathname === item.href || (item.name === 'My Profile' && pathname.startsWith('/profile'));
+                return (
+                  <Link
+                    key={item.name}
+                    href={item.href}
+                    onClick={() => setIsMobileMenuOpen(false)}
+                    className={`flex items-center justify-between px-4 py-3.5 rounded-xl text-base font-semibold active:scale-[0.98] transition-all ${
+                      isActive 
+                        ? 'text-white bg-white/10' 
+                        : 'text-zinc-400 hover:text-white hover:bg-white/5'
+                    }`}
+                  >
+                    <span className="flex items-center gap-3">
+                      <Icon className="h-5 w-5" />
+                      {item.name}
+                      {item.name === 'Notifications' && unreadCount > 0 && (
+                        <span className="bg-violet-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
+                          {unreadCount}
+                        </span>
+                      )}
+                    </span>
+                    <ChevronRight className="h-4 w-4 opacity-50" />
+                  </Link>
+                );
+              })}
           </nav>
           <div className="border-t border-white/10 pt-6 mt-auto">
             <Button
@@ -293,11 +311,33 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 bg-black min-h-[calc(100vh-65px)] md:min-h-screen p-4 sm:p-6 md:p-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 bg-black min-h-[calc(100vh-65px)] md:min-h-screen p-4 sm:p-6 md:p-8 pb-20 md:pb-8 overflow-y-auto">
         <div className="max-w-5xl mx-auto h-full flex flex-col animate-soft-fade">
           {children}
         </div>
       </main>
+
+      {/* Mobile Bottom Navigation Bar */}
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur-md border-t border-white/10 px-6 py-2 flex items-center justify-around">
+        {bottomNavItems.map((item) => {
+          const Icon = item.icon;
+          const isActive = pathname === item.href || (item.name === 'My Profile' && pathname.startsWith('/profile'));
+          return (
+            <Link
+              key={item.name}
+              href={item.href}
+              className={`flex flex-col items-center justify-center py-1 px-3 transition-all active:scale-95 duration-200 ${
+                isActive ? 'text-violet-500' : 'text-zinc-400 hover:text-white'
+              }`}
+              id={`mobile-bottom-nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+            >
+              <Icon className="h-5.5 w-5.5 mb-0.5" />
+              <span className="text-[9px] font-semibold tracking-wide">{item.name}</span>
+            </Link>
+          );
+        })}
+      </div>
+
       <FeedbackModal />
     </div>
   );

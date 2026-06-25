@@ -11,7 +11,12 @@ import {
   ShieldCheck, 
   Download, 
   Loader2,
-  Copy
+  Copy,
+  Clock,
+  XCircle,
+  CheckCircle2,
+  AlertCircle,
+  Info
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
@@ -70,6 +75,11 @@ export default function ContentDetailPage() {
   const [isRequesting, setIsRequesting] = useState(false);
   const [isDialogOpen, setIsDialogOpen] = useState(false);
 
+  const [signatureRequest, setSignatureRequest] = useState<any | null>(null);
+  const [artists, setArtists] = useState<any[]>([]);
+  const [selectedArtistId, setSelectedArtistId] = useState<string>('');
+  const [loadingArtists, setLoadingArtists] = useState(false);
+
   const fetchContentDetail = async () => {
     if (!params?.id) return;
     setLoading(true);
@@ -91,12 +101,56 @@ export default function ContentDetailPage() {
     }
   };
 
+  const fetchSignatureRequest = async () => {
+    if (!currentUser || !params?.id) return;
+    try {
+      const { api } = await import('@/lib/api');
+      const response = await api.get('/signature-requests?isInbox=false');
+      if (response.data?.success) {
+        const list = response.data.data;
+        const matching = list.find((r: any) => r.contentId === params.id);
+        setSignatureRequest(matching || null);
+      }
+    } catch (err) {
+      console.error('Error fetching signature request status:', err);
+    }
+  };
+
+  const fetchArtists = async () => {
+    setLoadingArtists(false);
+    try {
+      const { api } = await import('@/lib/api');
+      const response = await api.get('/users/artists');
+      if (response.data?.success) {
+        setArtists(response.data.data);
+        if (response.data.data.length > 0) {
+          setSelectedArtistId(response.data.data[0].id);
+        }
+      }
+    } catch (err) {
+      console.error('Error fetching artists:', err);
+    }
+  };
+
   useEffect(() => {
     fetchContentDetail();
   }, [params?.id]);
 
+  useEffect(() => {
+    if (params?.id && currentUser) {
+      fetchSignatureRequest();
+    }
+  }, [params?.id, currentUser]);
+
+  const isOwnContent = currentUser?.id === content?.creatorId;
+
+  useEffect(() => {
+    if (content && isOwnContent && !content.isSigned) {
+      fetchArtists();
+    }
+  }, [content, isOwnContent]);
+
   const handleLike = async () => {
-    // Standard visual feedback, actual API can be wired easily
     setIsLiked(!isLiked);
     setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
     toast.success(isLiked ? 'Artwork unliked' : 'Artwork liked!');
@@ -111,14 +165,17 @@ export default function ContentDetailPage() {
 
   const handleSendSignatureRequest = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!content) return;
+    if (!content || !selectedArtistId) {
+      toast.error('Please select an artist.');
+      return;
+    }
 
     setIsRequesting(true);
     try {
       const { api } = await import('@/lib/api');
       const response = await api.post('/signature-requests', {
         contentId: content.id,
-        artistId: content.creatorId,
+        artistId: selectedArtistId,
         message: requestMessage.trim() || undefined
       });
 
@@ -126,6 +183,7 @@ export default function ContentDetailPage() {
         toast.success('Signature request sent successfully!');
         setIsDialogOpen(false);
         setRequestMessage('');
+        fetchSignatureRequest();
       } else {
         toast.error(response.data?.message || 'Failed to send request.');
       }
@@ -156,8 +214,6 @@ export default function ContentDetailPage() {
       </div>
     );
   }
-
-  const isOwnContent = currentUser?.id === content.creatorId;
 
   return (
     <div className="space-y-8 animate-in fade-in duration-500">
@@ -279,17 +335,114 @@ export default function ContentDetailPage() {
 
           {/* Signature Action Section */}
           {!content.isSigned ? (
-            <Card className="border-violet-500/20 bg-gradient-to-br from-violet-950/20 to-fuchsia-950/15 backdrop-blur-md">
-              <CardContent className="p-6 text-center space-y-4">
-                <Award className="h-10 w-10 text-violet-400 mx-auto animate-pulse" />
-                <div>
-                  <h3 className="text-base font-bold text-white">Request Digital Autograph</h3>
-                  <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
-                    Ask the creator to digitally sign this artwork. Standart users are limited to 3 request tokens daily.
-                  </p>
-                </div>
+            signatureRequest && signatureRequest.status === 0 ? (
+              <Card className="border-amber-500/20 bg-gradient-to-br from-amber-950/20 to-zinc-950/40 backdrop-blur-md">
+                <CardContent className="p-6 text-center space-y-4">
+                  <Clock className="h-10 w-10 text-amber-400 mx-auto animate-pulse" />
+                  <div>
+                    <h3 className="text-base font-bold text-white">Signature Request Pending</h3>
+                    <p className="text-zinc-400 text-xs mt-1">
+                      Your request to <strong className="text-white">{signatureRequest.artistName}</strong> is awaiting review.
+                    </p>
+                    {signatureRequest.message && (
+                      <p className="text-zinc-500 text-xs mt-2 italic border-t border-white/5 pt-2 max-w-sm mx-auto">
+                        &ldquo;{signatureRequest.message}&rdquo;
+                      </p>
+                    )}
+                  </div>
+                </CardContent>
+              </Card>
+            ) : signatureRequest && signatureRequest.status === 2 ? (
+              <Card className="border-rose-500/20 bg-gradient-to-br from-rose-950/20 to-zinc-950/40 backdrop-blur-md">
+                <CardContent className="p-6 text-center space-y-4">
+                  <XCircle className="h-10 w-10 text-rose-400 mx-auto" />
+                  <div>
+                    <h3 className="text-base font-bold text-white">Signature Request Rejected</h3>
+                    <p className="text-zinc-400 text-xs mt-1">
+                      Your request was rejected by <strong className="text-white">{signatureRequest.artistName}</strong>.
+                    </p>
+                  </div>
+                  {isOwnContent && (
+                    <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
+                      <DialogTrigger asChild>
+                        <Button className="w-full bg-zinc-800 hover:bg-zinc-700 text-white font-semibold rounded-lg cursor-pointer">
+                          Request Autograph Again
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="border-white/10 bg-zinc-950 text-white">
+                        <DialogHeader>
+                          <DialogTitle>Send Signature Request</DialogTitle>
+                          <DialogDescription className="text-zinc-400">
+                            Choose a verified artist and add an optional message with your autograph request.
+                          </DialogDescription>
+                        </DialogHeader>
+                        <form onSubmit={handleSendSignatureRequest} className="space-y-4">
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                              Select Artist
+                            </label>
+                            {artists.length === 0 ? (
+                              <p className="text-xs text-zinc-500">Loading available artists...</p>
+                            ) : (
+                              <select
+                                value={selectedArtistId}
+                                onChange={(e) => setSelectedArtistId(e.target.value)}
+                                className="w-full h-11 px-3 rounded-lg border border-white/10 bg-black text-white focus:outline-none focus:ring-1 focus:ring-violet-500 text-sm cursor-pointer"
+                              >
+                                {artists.map((artist) => (
+                                  <option key={artist.id} value={artist.id} className="bg-zinc-950 text-white">
+                                    {artist.displayName || artist.userName} (@{artist.userName})
+                                  </option>
+                                ))}
+                              </select>
+                            )}
+                          </div>
+                          <div className="space-y-1.5">
+                            <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                              Personal Message (Optional)
+                            </label>
+                            <Textarea
+                              placeholder="Hi! I'd be absolutely thrilled if you signed my artwork!"
+                              value={requestMessage}
+                              onChange={(e) => setRequestMessage(e.target.value)}
+                              className="border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500"
+                              maxLength={500}
+                            />
+                          </div>
+                          <DialogFooter>
+                            <Button 
+                              type="button" 
+                              variant="outline" 
+                              onClick={() => setIsDialogOpen(false)}
+                              className="border-white/10 text-white hover:bg-white/5"
+                            >
+                              Cancel
+                            </Button>
+                            <Button 
+                              type="submit" 
+                              disabled={isRequesting || !selectedArtistId}
+                              className="bg-violet-600 hover:bg-violet-500"
+                            >
+                              {isRequesting ? 'Sending...' : 'Send Request'}
+                            </Button>
+                          </DialogFooter>
+                        </form>
+                      </DialogContent>
+                    </Dialog>
+                  )}
+                </CardContent>
+              </Card>
+            ) : isOwnContent ? (
+              <Card className="border-violet-500/20 bg-gradient-to-br from-violet-950/20 to-fuchsia-950/15 backdrop-blur-md">
+                <CardContent className="p-6 text-center space-y-4">
+                  <Award className="h-10 w-10 text-violet-400 mx-auto animate-pulse" />
+                  <div>
+                    <h3 className="text-base font-bold text-white">Request Digital Autograph</h3>
+                    <p className="text-zinc-400 text-xs mt-1 max-w-sm mx-auto">
+                      Ask a verified creator to digitally sign this artwork. Standard users are limited to 3 request tokens daily.
+                    </p>
+                  </div>
 
-                {!isOwnContent ? (
                   <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
                     <DialogTrigger asChild>
                       <Button className="w-full bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-violet-600/20 cursor-pointer">
@@ -300,16 +453,36 @@ export default function ContentDetailPage() {
                       <DialogHeader>
                         <DialogTitle>Send Signature Request</DialogTitle>
                         <DialogDescription className="text-zinc-400">
-                          Add an optional message to the artist with your autograph request.
+                          Choose a verified artist and add an optional message with your autograph request.
                         </DialogDescription>
                       </DialogHeader>
                       <form onSubmit={handleSendSignatureRequest} className="space-y-4">
                         <div className="space-y-1.5">
                           <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                            Select Artist
+                          </label>
+                          {artists.length === 0 ? (
+                            <p className="text-xs text-zinc-500">Loading available artists...</p>
+                          ) : (
+                            <select
+                              value={selectedArtistId}
+                              onChange={(e) => setSelectedArtistId(e.target.value)}
+                              className="w-full h-11 px-3 rounded-lg border border-white/10 bg-black text-white focus:outline-none focus:ring-1 focus:ring-violet-500 text-sm cursor-pointer"
+                            >
+                              {artists.map((artist) => (
+                                <option key={artist.id} value={artist.id} className="bg-zinc-950 text-white">
+                                  {artist.displayName || artist.userName} (@{artist.userName})
+                                </option>
+                              ))}
+                            </select>
+                          )}
+                        </div>
+                        <div className="space-y-1.5">
+                          <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
                             Personal Message (Optional)
                           </label>
                           <Textarea
-                            placeholder="Hi! I love your artwork. I'd be absolutely thrilled if you signed it!"
+                            placeholder="Hi! I'd be absolutely thrilled if you signed my artwork!"
                             value={requestMessage}
                             onChange={(e) => setRequestMessage(e.target.value)}
                             className="border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500"
@@ -327,7 +500,7 @@ export default function ContentDetailPage() {
                           </Button>
                           <Button 
                             type="submit" 
-                            disabled={isRequesting}
+                            disabled={isRequesting || !selectedArtistId}
                             className="bg-violet-600 hover:bg-violet-500"
                           >
                             {isRequesting ? 'Sending...' : 'Send Request'}
@@ -336,11 +509,18 @@ export default function ContentDetailPage() {
                       </form>
                     </DialogContent>
                   </Dialog>
-                ) : (
-                  <p className="text-[11px] text-zinc-500 italic">This is your own upload. Wait for fans to request signatures!</p>
-                )}
-              </CardContent>
-            </Card>
+                </CardContent>
+              </Card>
+            ) : (
+              <Card className="border-white/5 bg-zinc-950/20 backdrop-blur-md">
+                <CardContent className="p-6 text-center space-y-2">
+                  <Info className="h-5 w-5 text-zinc-600 mx-auto animate-pulse" />
+                  <p className="text-xs text-zinc-500">
+                    Only the creator of this artwork (<strong className="text-zinc-400">{content.creatorName}</strong>) can request digital signatures.
+                  </p>
+                </CardContent>
+              </Card>
+            )
           ) : (
             /* Autograph Certificate Stamp Card */
             <Card className="border-emerald-500/20 bg-gradient-to-br from-emerald-950/20 to-teal-950/15 backdrop-blur-md">

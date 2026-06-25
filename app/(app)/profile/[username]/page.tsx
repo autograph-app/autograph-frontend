@@ -18,7 +18,8 @@ import {
   UserPlus,
   Settings,
   Sparkles,
-  Info
+  Info,
+  EyeOff
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/authStore';
@@ -45,6 +46,7 @@ interface ContentItem {
   likesCount: number;
   isLikedByCurrentUser: boolean;
   createdDate: string;
+  isSigned: boolean;
 }
 
 interface ProfileData {
@@ -279,6 +281,27 @@ export default function ProfilePage() {
     }
   };
 
+  const handleHideSignedContent = async (e: React.MouseEvent, contentId: string) => {
+    e.stopPropagation();
+    if (!confirm('Are you sure you want to hide this signed content from your profile gallery?')) {
+      return;
+    }
+
+    try {
+      const response = await api.post(`/signature-requests/contents/${contentId}/hide`);
+      if (response.data?.success) {
+        toast.success('Signed content hidden from your profile.');
+        fetchProfile();
+      } else {
+        toast.error('Failed to hide content.');
+      }
+    } catch (error: unknown) {
+      console.error('Hide signed content failed:', error);
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to hide content.');
+    }
+  };
+
   const getInitials = (name: string) => {
     return name.slice(0, 2).toUpperCase();
   };
@@ -469,10 +492,25 @@ export default function ProfilePage() {
                             alt={item.description} 
                             className="object-cover w-full h-full"
                           />
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                            <p className="text-xs text-white truncate max-w-full font-medium">
+                          {item.isSigned && (
+                            <div className="absolute top-2 right-2 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 z-10">
+                              <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> Signed
+                            </div>
+                          )}
+                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-4">
+                            <p className="text-xs text-white truncate max-w-[70%] font-medium">
                               {item.description}
                             </p>
+                            {isOwnProfile && profile.accountType === 1 && item.isSigned && (
+                              <button
+                                onClick={(e) => handleHideSignedContent(e, item.id)}
+                                className="bg-red-500/80 hover:bg-red-600 backdrop-blur-md text-white border border-red-500/30 text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all duration-200 shadow-md hover:scale-105 z-20"
+                                title="Hide from my profile"
+                              >
+                                <EyeOff className="h-3.5 w-3.5" />
+                                Hide
+                              </button>
+                            )}
                           </div>
                         </div>
                         <div className="p-4 flex items-center justify-between border-t border-white/5">
@@ -539,6 +577,11 @@ export default function ProfilePage() {
                             alt={item.description} 
                             className="object-cover w-full h-full"
                           />
+                          {item.isSigned && (
+                            <div className="absolute top-2 right-2 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 z-10">
+                              <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> Signed
+                            </div>
+                          )}
                           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
                             <p className="text-xs text-white truncate max-w-full font-medium">
                               {item.description}
