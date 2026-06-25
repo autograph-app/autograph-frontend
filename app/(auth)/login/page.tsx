@@ -101,8 +101,8 @@ export default function LoginPage() {
 
       <div className="z-10 w-full max-w-md animate-soft-fade">
         {/* Logo / Brand header */}
-        <div 
-          onClick={() => window.location.reload()} 
+        <Link
+          href="/"
           className="mb-8 flex flex-col items-center text-center cursor-pointer select-none group"
         >
           <div className="flex h-12 w-12 items-center justify-center rounded-2xl bg-gradient-to-tr from-violet-600 to-fuchsia-600 shadow-lg shadow-violet-500/30 ring-1 ring-white/20 transition-transform duration-300 group-hover:scale-105 active:scale-95">
@@ -114,7 +114,7 @@ export default function LoginPage() {
           <p className="mt-2 text-sm text-zinc-400">
             Exclusive Digital Collectibles & Signatures
           </p>
-        </div>
+        </Link>
 
         {/* Glassmorphic Login Card */}
         <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl shadow-2xl">
