@@ -2,6 +2,7 @@
 
 /* eslint-disable react-hooks/set-state-in-effect, @typescript-eslint/no-explicit-any, react-hooks/exhaustive-deps */
 import React, { useEffect, useState } from 'react';
+import Image from 'next/image';
 import { useParams, useRouter } from 'next/navigation';
 import { toast } from 'sonner';
 import { 
@@ -14,8 +15,6 @@ import {
   Copy,
   Clock,
   XCircle,
-  CheckCircle2,
-  AlertCircle,
   Info
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
@@ -78,7 +77,6 @@ export default function ContentDetailPage() {
   const [signatureRequest, setSignatureRequest] = useState<any | null>(null);
   const [artists, setArtists] = useState<any[]>([]);
   const [selectedArtistId, setSelectedArtistId] = useState<string>('');
-  const [loadingArtists, setLoadingArtists] = useState(false);
 
   const fetchContentDetail = async () => {
     if (!params?.id) return;
@@ -117,7 +115,6 @@ export default function ContentDetailPage() {
   };
 
   const fetchArtists = async () => {
-    setLoadingArtists(false);
     try {
       const { api } = await import('@/lib/api');
       const response = await api.get('/users/artists');
@@ -238,10 +235,11 @@ export default function ContentDetailPage() {
         {/* Left Column: Image Display */}
         <div className="lg:col-span-7 space-y-4">
           <div className="relative aspect-[4/3] w-full bg-zinc-900 border border-white/10 rounded-2xl overflow-hidden shadow-2xl group">
-            <img 
+            <Image 
               src={content.isSigned && content.signature ? content.signature.watermarkUrl : content.imageUrl} 
               alt={content.title} 
               className="object-contain w-full h-full"
+              fill
             />
             {content.isSigned && (
               <div className="absolute inset-0 bg-gradient-to-t from-black/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-4">

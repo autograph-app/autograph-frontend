@@ -5,7 +5,7 @@ import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Compass, ShieldAlert, Sparkles, Flame, Star, Loader2, Heart, CheckCircle2 } from 'lucide-react';
+import { Search, Compass, Sparkles, Flame, Star, Loader2, Heart, CheckCircle2 } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
@@ -26,10 +26,18 @@ interface FeedItem {
   isLikedByCurrentUser: boolean;
 }
 
+interface UserSearchResult {
+  id: string;
+  userName: string;
+  displayName: string;
+  avatarUrl: string | null;
+  isVerified: boolean;
+}
+
 export default function ExplorePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
-  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
   const [trendingItems, setTrendingItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);

@@ -2,6 +2,7 @@
 
 /* eslint-disable @typescript-eslint/no-explicit-any */
 import React, { useState } from 'react';
+import Image from 'next/image';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from '@/components/ui/card';
@@ -136,7 +137,7 @@ export default function ContentPage() {
                   {previewUrl ? (
                     <div className="space-y-4 text-center w-full max-w-sm">
                       <div className="aspect-video w-full rounded-lg overflow-hidden border border-white/10 relative mx-auto bg-zinc-900">
-                        <img src={previewUrl} alt="Preview" className="object-cover w-full h-full" />
+                        <Image src={previewUrl} alt="Preview" className="object-cover w-full h-full" fill />
                       </div>
                       <p className="text-xs text-zinc-400 truncate font-semibold">{file?.name}</p>
                       <Button 
