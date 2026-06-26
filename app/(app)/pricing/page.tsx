@@ -14,6 +14,13 @@ export default function PricingPage() {
   const { user, token } = useAuthStore();
   const [loading, setLoading] = useState(false);
 
+  React.useEffect(() => {
+    if (user && user.accountType === 1) {
+      router.replace('/feed');
+      toast.error('Sanatçılar Premium özelliklere erişemez.');
+    }
+  }, [user, router]);
+
   const handleUpgrade = async () => {
     if (!token) {
       toast.error('Lütfen önce giriş yapın.');

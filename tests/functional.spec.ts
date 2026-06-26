@@ -45,7 +45,11 @@ test.describe('UI İşlevsel Testleri (Forms, Modals & Uploads)', () => {
       // Create a dummy large file (> 10MB) or unsupported format to test frontend boundary limits
       const tempDir = path.join(__dirname, 'temp');
       if (!fs.existsSync(tempDir)) {
-        fs.mkdirSync(tempDir);
+        try {
+          fs.mkdirSync(tempDir, { recursive: true });
+        } catch (err) {
+          if ((err as { code?: string }).code !== 'EEXIST') throw err;
+        }
       }
       
       const txtFilePath = path.join(tempDir, 'invalid-test.txt');

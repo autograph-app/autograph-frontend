@@ -4,7 +4,6 @@ import React, { useEffect, useState } from 'react';
 import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
-import { api } from '@/lib/api';
 import { useNotificationStore } from '@/store/notificationStore';
 import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
 import { toast } from 'sonner';
@@ -20,18 +19,21 @@ import {
   Menu,
   X,
   ChevronRight,
-  Inbox
+  Inbox,
+  Settings
 } from 'lucide-react';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
 import FeedbackModal from '@/components/layout/FeedbackModal';
+import LogoutConfirmDialog from '@/components/auth/LogoutConfirmDialog';
 
 export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
-  const { token, user, logout } = useAuthStore();
+  const { token, user } = useAuthStore();
   const { unreadCount, fetchNotifications, addNotification } = useNotificationStore();
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
 
   useEffect(() => {
     const handle = requestAnimationFrame(() => {
@@ -102,34 +104,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
     { name: 'Explore', href: '/explore', icon: Compass },
     ...(user && user.accountType === 1 ? [{ name: 'Artist Inbox', href: '/inbox', icon: Inbox }] : []),
     { name: 'Notifications', href: '/notifications', icon: Bell },
-    { name: 'Share Content', href: '/content', icon: PlusSquare },
+    ...(user && user.accountType !== 1 ? [{ name: 'Share Content', href: '/content', icon: PlusSquare }] : []),
     { name: 'My Profile', href: user ? `/profile/${user.userName}` : '/profile/me', icon: UserIcon },
-    { name: 'Pricing', href: '/pricing', icon: Sparkles },
+    { name: 'Settings', href: '/settings', icon: Settings },
+    ...(user && user.accountType !== 1 ? [{ name: 'Pricing', href: '/pricing', icon: Sparkles }] : []),
   ];
 
   const bottomNavItems = [
     { name: 'Feed', href: '/feed', icon: Home },
     { name: 'Explore', href: '/explore', icon: Compass },
-    { name: 'Share Content', href: '/content', icon: PlusSquare },
+    ...(user && user.accountType === 1 ? [{ name: 'Inbox', href: '/inbox', icon: Inbox }] : []),
+    ...(user && user.accountType !== 1 ? [{ name: 'Share Content', href: '/content', icon: PlusSquare }] : []),
     { name: 'My Profile', href: user ? `/profile/${user.userName}` : '/profile/me', icon: UserIcon },
   ];
 
-  const handleLogout = async () => {
-    if (!window.confirm('Cikis yapmak istediginize emin misiniz?')) {
-      return;
-    }
-
-    try {
-      const refreshToken = useAuthStore.getState().refreshToken;
-      if (refreshToken) {
-        await api.post('/auth/revoke-token', { token: refreshToken });
-      }
-    } catch (err) {
-      console.error('Failed to revoke token on backend:', err);
-    } finally {
-      logout();
-      router.push('/login');
-    }
+  const handleLogout = () => {
+    setIsLogoutDialogOpen(true);
   };
 
   const getInitials = (name: string) => {
@@ -197,8 +187,11 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         {/* User Footer Profile */}
         {user && (
           <div className="mt-auto pt-6 border-t border-white/10 flex items-center justify-between">
-            <div className="flex items-center gap-3 min-w-0">
-              <Avatar className="h-10 w-10 border border-white/20">
+            <Link 
+              href={user ? `/profile/${user.userName}` : '/profile/me'}
+              className="flex items-center gap-3 min-w-0 hover:opacity-85 active:scale-[0.98] transition-all cursor-pointer group"
+            >
+              <Avatar className="h-10 w-10 border border-white/20 group-hover:border-violet-500/50 transition-colors duration-300">
                 <AvatarImage src={user.avatarUrl} alt={user.displayName || user.userName} />
                 <AvatarFallback className="bg-zinc-800 text-white font-bold">
                   {getInitials(user.displayName || user.userName)}
@@ -206,7 +199,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
               </Avatar>
               <div className="min-w-0">
                 <div className="flex items-center gap-1.5 min-w-0">
-                  <p className="text-sm font-semibold truncate text-white leading-none">
+                  <p className="text-sm font-semibold truncate text-white leading-none group-hover:text-violet-400 transition-colors duration-300">
                     {user.displayName || user.userName}
                   </p>
                   {user.isPremium && (
@@ -219,7 +212,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   {user.accountType === 1 ? 'Artist' : 'Fan'}
                 </p>
               </div>
-            </div>
+            </Link>
             <button 
               onClick={handleLogout}
               className="text-zinc-500 hover:text-rose-400 transition-colors p-1.5 hover:bg-white/5 rounded-lg"
@@ -234,7 +227,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       {/* Mobile Top Header */}
       <header className="md:hidden flex items-center justify-between bg-zinc-950/90 border-b border-white/10 px-5 py-4 sticky top-0 z-30 backdrop-blur-md w-full">
         <div 
-          onClick={() => router.push('/feed')} 
+          onClick={() => {
+            router.push('/feed');
+            setIsMobileMenuOpen(false);
+          }} 
           className="flex items-center gap-2 cursor-pointer hover:opacity-90 active:scale-95 transition-all select-none"
         >
           <div className="flex h-8 w-8 items-center justify-center rounded-lg bg-gradient-to-tr from-violet-600 to-fuchsia-600">
@@ -246,13 +242,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
           {user && (
             <Link 
               href="/notifications" 
+              onClick={() => setIsMobileMenuOpen(false)}
               className="relative cursor-pointer transition-transform duration-200 active:scale-95 select-none"
               id="mobile-notification-avatar"
             >
               <Avatar className="h-8 w-8 border border-white/10">
                 <AvatarImage src={user.avatarUrl} alt={user.displayName || user.userName} />
-                <AvatarFallback className="bg-zinc-800 text-white text-xs font-bold">
-                  {getInitials(user.displayName || user.userName)}
+                <AvatarFallback className="bg-zinc-900 text-zinc-400 flex items-center justify-center">
+                  <Bell className="h-3.5 w-3.5" />
                 </AvatarFallback>
               </Avatar>
               {user.isPremium && (
@@ -281,7 +278,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="md:hidden fixed inset-0 top-[65px] bg-black/95 z-30 flex flex-col p-6 backdrop-blur-lg border-t border-white/5 animate-in fade-in slide-in-from-top-4 duration-300">
           <nav className="space-y-2 flex-1">
             {navItems
-              .filter((item) => !['Feed', 'Explore', 'Share Content', 'My Profile'].includes(item.name))
+              .filter((item) => !['Feed', 'Explore', 'Share Content', 'My Profile', 'Artist Inbox', 'Inbox'].includes(item.name))
               .map((item) => {
                 const Icon = item.icon;
                 const isActive = pathname === item.href || (item.name === 'My Profile' && pathname.startsWith('/profile'));
@@ -344,6 +341,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             <Link
               key={item.name}
               href={item.href}
+              onClick={() => setIsMobileMenuOpen(false)}
               className={`flex flex-col items-center justify-center py-1 px-3 transition-all active:scale-95 duration-200 ${
                 isActive ? 'text-violet-500' : 'text-zinc-400 hover:text-white'
               }`}
@@ -357,6 +355,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       <FeedbackModal />
+      <LogoutConfirmDialog isOpen={isLogoutDialogOpen} onClose={() => setIsLogoutDialogOpen(false)} />
     </div>
   );
 }

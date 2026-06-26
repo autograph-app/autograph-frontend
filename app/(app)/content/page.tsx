@@ -17,9 +17,17 @@ export default function ContentPage() {
   const { user } = useAuthStore();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
+  const [category, setCategory] = useState('DigitalArts');
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+
+  React.useEffect(() => {
+    if (user && user.accountType === 1) {
+      router.replace('/feed');
+      toast.error('Sanatçılar içerik paylaşamaz.');
+    }
+  }, [user, router]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -53,6 +61,7 @@ export default function ContentPage() {
       if (description.trim()) {
         formData.append('description', description.trim());
       }
+      formData.append('category', category);
       formData.append('file', file);
 
       const response = await api.post('/contents', formData, {
@@ -67,6 +76,7 @@ export default function ContentPage() {
         setPreviewUrl(null);
         setTitle('');
         setDescription('');
+        setCategory('DigitalArts');
         router.push(user ? `/profile/${user.userName}` : '/feed');
       } else {
         toast.error(response.data?.message || 'Failed to publish artwork.');
@@ -192,6 +202,22 @@ export default function ContentPage() {
                   disabled={isUploading}
                   className="min-h-[100px] border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
                 />
+              </div>
+
+              <div className="space-y-1.5">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
+                  Category
+                </label>
+                <select
+                  value={category}
+                  onChange={(e) => setCategory(e.target.value)}
+                  disabled={isUploading}
+                  className="h-10 w-full rounded-md border border-white/10 bg-black/40 px-3 text-sm text-white outline-none focus:border-violet-500"
+                >
+                  <option value="DigitalArts" className="bg-zinc-900">Digital Arts</option>
+                  <option value="SportsMemorabilia" className="bg-zinc-900">Sports Memorabilia</option>
+                  <option value="MusicCollectibles" className="bg-zinc-900">Music Collectibles</option>
+                </select>
               </div>
 
               <Button

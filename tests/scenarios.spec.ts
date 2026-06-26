@@ -9,7 +9,11 @@ test.describe('Kullanıcı Gerçek Dünya Senaryoları (E2E)', () => {
     // Prepare a mock image file for upload testing
     const tempDir = path.join(__dirname, 'temp');
     if (!fs.existsSync(tempDir)) {
-      fs.mkdirSync(tempDir);
+      try {
+        fs.mkdirSync(tempDir, { recursive: true });
+      } catch (err) {
+        if ((err as { code?: string }).code !== 'EEXIST') throw err;
+      }
     }
     tempImage = path.join(tempDir, 'test-art.png');
     // Write 1px transparent PNG mock
@@ -225,6 +229,11 @@ test.describe('Kullanıcı Gerçek Dünya Senaryoları (E2E)', () => {
     const logoutBtn = page.locator('#profile-logout-btn');
     await expect(logoutBtn).toBeVisible();
     await logoutBtn.click();
+
+    // Custom logout modalı onay butonuna tıkla
+    const confirmBtn = page.locator('button:has-text("Çıkış Yap")');
+    await expect(confirmBtn).toBeVisible();
+    await confirmBtn.click();
 
     // 6. Giriş sayfasına yönlendirildiğimizi doğrula
     await expect(page).toHaveURL(/.*login/);

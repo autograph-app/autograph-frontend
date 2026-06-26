@@ -75,7 +75,7 @@ export default function LoginPage() {
           });
 
           toast.success(`Welcome back, ${profile.displayName || profile.userName}!`);
-          router.push(`/profile/${profile.userName}`);
+          router.push('/feed');
         } else {
           throw new Error('Failed to retrieve profile data.');
         }

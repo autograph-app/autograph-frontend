@@ -1,11 +1,11 @@
 'use client';
 
-import React, { useState, useEffect, useCallback } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Compass, Sparkles, Flame, Star, Loader2, Heart, CheckCircle2 } from 'lucide-react';
+import { Search, Compass, Sparkles, Flame, Star, Loader2, Heart, CheckCircle2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 
@@ -13,6 +13,7 @@ interface FeedItem {
   id: string;
   title: string;
   description: string | null;
+  category: string;
   imageUrl: string;
   isSigned: boolean;
   signatureCount: number;
@@ -34,6 +35,15 @@ interface UserSearchResult {
   isVerified: boolean;
 }
 
+type CategoryKey = 'digital' | 'sports' | 'music';
+
+interface ActiveExperience {
+  mode: 'category' | 'trending';
+  title: string;
+  items: FeedItem[];
+  startItemId?: string;
+}
+
 export default function ExplorePage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -44,6 +54,7 @@ export default function ExplorePage() {
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
+  const [activeExperience, setActiveExperience] = useState<ActiveExperience | null>(null);
 
   const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -111,6 +122,29 @@ export default function ExplorePage() {
     return () => cancelAnimationFrame(handle);
   }, [fetchExplore]);
 
+  useEffect(() => {
+    if (!activeExperience) {
+      document.body.style.overflow = '';
+      return;
+    }
+
+    document.body.style.overflow = 'hidden';
+    return () => {
+      document.body.style.overflow = '';
+    };
+  }, [activeExperience]);
+
+  useEffect(() => {
+    if (!activeExperience?.startItemId) return;
+
+    const frame = requestAnimationFrame(() => {
+      const target = document.getElementById(`explore-slide-${activeExperience.startItemId}`);
+      target?.scrollIntoView({ block: 'start' });
+    });
+
+    return () => cancelAnimationFrame(frame);
+  }, [activeExperience]);
+
   const handleLoadMore = () => {
     const nextPage = page + 1;
     setPage(nextPage);
@@ -162,10 +196,77 @@ export default function ExplorePage() {
     }
   };
 
+  const resolveCategoryForItem = useCallback((item: FeedItem): CategoryKey => {
+    if (item.category === 'sports') return 'sports';
+    if (item.category === 'music') return 'music';
+    return 'digital';
+  }, []);
+
+  const categorizedItems = useMemo(() => {
+    return trendingItems.reduce<Record<CategoryKey, FeedItem[]>>(
+      (acc, item) => {
+        const category = resolveCategoryForItem(item);
+        acc[category].push(item);
+        return acc;
+      },
+      { digital: [], sports: [], music: [] }
+    );
+  }, [trendingItems, resolveCategoryForItem]);
+
+  const openCategoryExperience = (category: CategoryKey, title: string) => {
+    const items = categorizedItems[category];
+    if (items.length === 0) {
+      toast.info('This category has no content yet.');
+      return;
+    }
+
+    setActiveExperience({
+      mode: 'category',
+      title,
+      items,
+    });
+  };
+
+  const openTrendingExperience = (startItemId?: string) => {
+    if (trendingItems.length === 0) {
+      toast.info('Trending feed is empty.');
+      return;
+    }
+
+    setActiveExperience({
+      mode: 'trending',
+      title: 'Trending Artworks',
+      items: trendingItems,
+      startItemId,
+    });
+  };
+
+  const closeExperience = () => {
+    setActiveExperience(null);
+  };
+
   const trendingCategories = [
-    { title: 'Digital Arts', count: '1.2k signatures', icon: Sparkles, color: 'text-violet-400 bg-violet-500/10' },
-    { title: 'Sports Memorabilia', count: '852 signatures', icon: Flame, color: 'text-fuchsia-400 bg-fuchsia-500/10' },
-    { title: 'Music Collectibles', count: '412 signatures', icon: Star, color: 'text-amber-400 bg-amber-500/10' },
+    {
+      key: 'digital' as CategoryKey,
+      title: 'Digital Arts',
+      icon: Sparkles,
+      color: 'text-violet-400 bg-violet-500/10',
+      count: `${categorizedItems.digital.length} items`
+    },
+    {
+      key: 'sports' as CategoryKey,
+      title: 'Sports Memorabilia',
+      icon: Flame,
+      color: 'text-fuchsia-400 bg-fuchsia-500/10',
+      count: `${categorizedItems.sports.length} items`
+    },
+    {
+      key: 'music' as CategoryKey,
+      title: 'Music Collectibles',
+      icon: Star,
+      color: 'text-amber-400 bg-amber-500/10',
+      count: `${categorizedItems.music.length} items`
+    },
   ];
 
   return (
@@ -248,11 +349,16 @@ export default function ExplorePage() {
       {/* Trending categories section */}
       <div className="space-y-4">
         <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">Trending Categories</h3>
+        <p className="text-xs text-zinc-500">Tap any category to enter vertical swipe mode and scroll through only that category.</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {trendingCategories.map((cat, i) => {
             const Icon = cat.icon;
             return (
-              <Card key={i} className="border-white/5 bg-zinc-900/30 hover:bg-zinc-900/50 transition-all duration-300">
+              <Card
+                key={i}
+                onClick={() => openCategoryExperience(cat.key, cat.title)}
+                className="border-white/5 bg-zinc-900/30 hover:bg-zinc-900/50 transition-all duration-300 cursor-pointer hover:-translate-y-0.5"
+              >
                 <CardContent className="p-5 flex items-center gap-4">
                   <div className={`p-3 rounded-xl ${cat.color}`}>
                     <Icon className="h-5 w-5" />
@@ -270,10 +376,19 @@ export default function ExplorePage() {
 
       {/* Trending Feed Grid */}
       <div className="space-y-4">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
-          <Flame className="h-4 w-4 text-fuchsia-400" />
-          Trending Artworks
-        </h3>
+        <div className="flex items-center justify-between gap-3">
+          <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
+            <Flame className="h-4 w-4 text-fuchsia-400" />
+            Trending Artworks
+          </h3>
+          <Button
+            onClick={() => openTrendingExperience()}
+            className="h-8 px-3 text-xs border border-white/10 bg-zinc-900/70 hover:bg-zinc-800 cursor-pointer"
+          >
+            Vertical Browse
+          </Button>
+        </div>
+        <p className="text-xs text-zinc-500">Smaller thumbnails for denser discovery. Tap any item to open full-screen vertical flow.</p>
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
@@ -287,35 +402,35 @@ export default function ExplorePage() {
           </div>
         ) : (
           <div className="space-y-6">
-            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+            <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-3">
               {trendingItems.map((item) => (
                 <div 
                   key={item.id} 
-                  onClick={() => router.push(`/contents/${item.id}`)}
-                  className="group relative rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-lg transition-all duration-300 hover:scale-[1.02] hover:border-violet-500/30 cursor-pointer"
+                  onClick={() => openTrendingExperience(item.id)}
+                  className="group relative rounded-xl overflow-hidden border border-white/10 bg-zinc-950 shadow-lg transition-all duration-300 hover:scale-[1.01] hover:border-violet-500/30 cursor-pointer"
                 >
-                  <div className="aspect-video w-full bg-zinc-900 relative overflow-hidden">
+                  <div className="aspect-[4/5] w-full bg-zinc-900 relative overflow-hidden">
                     <img 
                       src={item.imageUrl} 
                       alt={item.title} 
                       className="object-cover w-full h-full transition-transform duration-500 group-hover:scale-105"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/20 to-transparent opacity-80 group-hover:opacity-95 transition-opacity duration-300" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/95 via-black/30 to-transparent opacity-90 group-hover:opacity-95 transition-opacity duration-300" />
                     
                     {item.isSigned && (
-                      <div className="absolute top-3 right-3 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[10px] font-bold px-2.5 py-0.5 rounded-full flex items-center gap-1">
+                      <div className="absolute top-2 right-2 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
                         <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> Signed
                       </div>
                     )}
 
-                    <div className="absolute inset-x-0 bottom-0 p-4 flex flex-col justify-end">
-                      <h4 className="font-bold text-sm text-white group-hover:text-violet-300 transition-colors truncate">{item.title}</h4>
-                      <p className="text-[11px] text-zinc-400 truncate mt-1">by @{item.creatorUsername}</p>
+                    <div className="absolute inset-x-0 bottom-0 p-3 flex flex-col justify-end">
+                      <h4 className="font-bold text-xs text-white group-hover:text-violet-300 transition-colors truncate">{item.title}</h4>
+                      <p className="text-[10px] text-zinc-400 truncate mt-0.5">@{item.creatorUsername}</p>
                     </div>
                   </div>
-                  <div className="p-4 flex items-center justify-between border-t border-white/5 bg-zinc-950/90 text-xs">
-                    <span className="text-zinc-500 font-semibold uppercase tracking-wider text-[10px]">
-                      {item.signatureCount} Signatures
+                  <div className="px-3 py-2 flex items-center justify-between border-t border-white/5 bg-zinc-950/90 text-[11px]">
+                    <span className="text-zinc-500 font-semibold uppercase tracking-wider text-[9px]">
+                      {item.signatureCount} sig
                     </span>
                     <button 
                       onClick={(e) => toggleLike(item.id, e)}
@@ -323,7 +438,7 @@ export default function ExplorePage() {
                         item.isLikedByCurrentUser ? 'text-rose-500' : 'text-zinc-400'
                       }`}
                     >
-                      <Heart className={`h-4 w-4 ${item.isLikedByCurrentUser ? 'fill-rose-500' : ''}`} />
+                      <Heart className={`h-3.5 w-3.5 ${item.isLikedByCurrentUser ? 'fill-rose-500' : ''}`} />
                       <span>{item.likeCount}</span>
                     </button>
                   </div>
@@ -351,6 +466,87 @@ export default function ExplorePage() {
           </div>
         )}
       </div>
+
+      {activeExperience && (
+        <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md">
+          <div className="mx-auto flex h-full max-w-3xl flex-col p-3 sm:p-5">
+            <div className="mb-3 flex items-center justify-between rounded-xl border border-white/10 bg-zinc-950/80 p-3">
+              <div>
+                <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">
+                  {activeExperience.mode === 'category' ? 'Category Flow' : 'Trending Flow'}
+                </p>
+                <h4 className="text-sm font-bold text-white">{activeExperience.title}</h4>
+              </div>
+              <Button
+                onClick={closeExperience}
+                className="h-9 w-9 p-0 border border-white/10 bg-zinc-900/70 hover:bg-zinc-800 cursor-pointer"
+                aria-label="Close vertical browser"
+              >
+                <X className="h-4 w-4" />
+              </Button>
+            </div>
+
+            <div className="h-[calc(100vh-110px)] overflow-y-auto snap-y snap-mandatory space-y-4 pr-1">
+              {activeExperience.items.map((item) => (
+                <article
+                  id={`explore-slide-${item.id}`}
+                  key={item.id}
+                  className="snap-start min-h-[calc(100vh-150px)] rounded-2xl border border-white/10 bg-zinc-950 overflow-hidden"
+                >
+                  <div className="relative h-[70vh] min-h-[320px] bg-zinc-900">
+                    <img
+                      src={item.imageUrl}
+                      alt={item.title}
+                      className="h-full w-full object-cover"
+                    />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                    {item.isSigned && (
+                      <div className="absolute right-4 top-4 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                        <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> Signed
+                      </div>
+                    )}
+
+                    <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+                      <h3 className="text-xl sm:text-2xl font-extrabold text-white">{item.title}</h3>
+                      <p className="mt-1 text-sm text-zinc-300">by @{item.creatorUsername}</p>
+                      {item.description && (
+                        <p className="mt-3 line-clamp-3 text-sm text-zinc-300/90">{item.description}</p>
+                      )}
+                    </div>
+                  </div>
+
+                  <div className="flex items-center justify-between gap-3 p-4 border-t border-white/5">
+                    <div className="flex items-center gap-2 text-xs text-zinc-400">
+                      <span>{item.signatureCount} signatures</span>
+                      <span className="text-zinc-700">|</span>
+                      <span>{item.likeCount} likes</span>
+                    </div>
+                    <div className="flex items-center gap-2">
+                      <Button
+                        onClick={(e) => toggleLike(item.id, e)}
+                        className={`h-9 px-3 text-xs border cursor-pointer ${
+                          item.isLikedByCurrentUser
+                            ? 'border-rose-500/40 bg-rose-500/10 text-rose-400 hover:bg-rose-500/20'
+                            : 'border-white/10 bg-zinc-900 text-zinc-200 hover:bg-zinc-800'
+                        }`}
+                      >
+                        <Heart className={`h-3.5 w-3.5 ${item.isLikedByCurrentUser ? 'fill-rose-500' : ''}`} />
+                        Like
+                      </Button>
+                      <Button
+                        onClick={() => router.push(`/contents/${item.id}`)}
+                        className="h-9 px-3 text-xs border border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 cursor-pointer"
+                      >
+                        Open Detail
+                      </Button>
+                    </div>
+                  </div>
+                </article>
+              ))}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -20,14 +20,17 @@ import {
   Sparkles,
   Info,
   EyeOff,
-  LogOut
+  LogOut,
+  Clock,
+  XCircle,
+  Trash2
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/authStore';
 import { api } from '@/lib/api';
 import { Button } from '@/components/ui/button';
 import { Avatar, AvatarFallback, AvatarImage } from '@/components/ui/avatar';
-import { Card, CardContent } from '@/components/ui/card';
+import { Card } from '@/components/ui/card';
 import { 
   Dialog, 
   DialogContent, 
@@ -39,6 +42,7 @@ import {
 import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
+import LogoutConfirmDialog from '@/components/auth/LogoutConfirmDialog';
 
 interface ContentItem {
   id: string;
@@ -66,33 +70,39 @@ interface ProfileData {
   contents: ContentItem[];
 }
 
+interface SignatureRequestDto {
+  id: string;
+  contentId: string;
+  contentTitle: string;
+  contentImageUrl: string;
+  fanId: string;
+  fanName: string;
+  artistId: string;
+  artistName: string;
+  message: string | null;
+  status: number; // 0 = Pending, 1 = Approved, 2 = Rejected
+  createdDate: string;
+}
+
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
-  const { user: currentUser, updateUser, logout } = useAuthStore();
+  const { user: currentUser, updateUser } = useAuthStore();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
   const [isEditOpen, setIsEditOpen] = useState(false);
   const [uploadingAvatar, setUploadingAvatar] = useState(false);
   const [followingLoading, setFollowingLoading] = useState(false);
+  const [isLogoutDialogOpen, setIsLogoutDialogOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const handleLogout = async () => {
-    if (!window.confirm('Cikis yapmak istediginize emin misiniz?')) {
-      return;
-    }
+  // Outgoing signature requests state for fan review section
+  const [signatureRequests, setSignatureRequests] = useState<SignatureRequestDto[]>([]);
+  const [deletingAll, setDeletingAll] = useState(false);
+  const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false);
 
-    try {
-      const refreshToken = useAuthStore.getState().refreshToken;
-      if (refreshToken) {
-        await api.post('/auth/revoke-token', { token: refreshToken });
-      }
-    } catch (err) {
-      console.error('Failed to revoke token on backend:', err);
-    } finally {
-      logout();
-      router.push('/login');
-    }
+  const handleLogout = () => {
+    setIsLogoutDialogOpen(true);
   };
 
   // Edit form state
@@ -130,10 +140,10 @@ export default function ProfilePage() {
 
       const response = await api.get(endpoint);
       if (response.data?.success) {
-        setProfile(response.data.data);
+        const p = response.data.data;
+        setProfile(p);
         // Sync to store if it's our own profile
-        if (isOwnProfile && response.data.data) {
-          const p = response.data.data;
+        if (isOwnProfile && p) {
           updateUser({
             displayName: p.displayName || undefined,
             avatarUrl: p.avatarUrl || undefined,
@@ -142,6 +152,18 @@ export default function ProfilePage() {
             isVerified: p.isVerified,
             isPremium: p.isPremium,
           });
+
+          // Fetch outgoing signature requests for own Fan profile
+          if (p.accountType !== 1) {
+            try {
+              const sigRes = await api.get('/signature-requests?isInbox=false');
+              if (sigRes.data?.success) {
+                setSignatureRequests(sigRes.data.data);
+              }
+            } catch (err) {
+              console.error('Failed to fetch signature requests:', err);
+            }
+          }
         }
       } else {
         toast.error('Failed to load profile.');
@@ -323,6 +345,26 @@ export default function ProfilePage() {
     }
   };
 
+  const handleDeleteAllContent = async () => {
+    setDeletingAll(true);
+    try {
+      const response = await api.delete('/contents');
+      if (response.data?.success) {
+        toast.success(response.data?.message || 'All contents deleted successfully.');
+        setIsDeleteAllConfirmOpen(false);
+        fetchProfile();
+      } else {
+        toast.error('Failed to delete contents.');
+      }
+    } catch (error: unknown) {
+      console.error('Delete all contents failed:', error);
+      const err = error as { response?: { data?: { message?: string } } };
+      toast.error(err.response?.data?.message || 'Failed to delete contents.');
+    } finally {
+      setDeletingAll(false);
+    }
+  };
+
   const getInitials = (name: string) => {
     return name.slice(0, 2).toUpperCase();
   };
@@ -346,6 +388,88 @@ export default function ProfilePage() {
       </div>
     );
   }
+
+  // Sort contents for Top Collection (by likesCount descending)
+  const topCollectionContents = profile?.contents 
+    ? [...profile.contents].sort((a, b) => b.likesCount - a.likesCount)
+    : [];
+
+  // Sort contents for All Content (by isSigned descending, and then by createdDate descending)
+  const allContents = profile?.contents 
+    ? [...profile.contents].sort((a, b) => {
+        if (a.isSigned && !b.isSigned) return -1;
+        if (!a.isSigned && b.isSigned) return 1;
+        return new Date(b.createdDate).getTime() - new Date(a.createdDate).getTime();
+      })
+    : [];
+
+  // Outgoing signature requests filtered for review
+  const reviewContents = signatureRequests.filter(r => r.status === 0 || r.status === 2);
+
+  // Signed top contents for fan profile (sorted by likesCount descending)
+  const signedTopContents = profile?.contents
+    ? [...profile.contents].filter(c => c.isSigned).sort((a, b) => b.likesCount - a.likesCount)
+    : [];
+
+  const renderContentGrid = (items: ContentItem[]) => {
+    if (!items || items.length === 0) {
+      return (
+        <div className="text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
+          <Sparkles className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
+          <p className="text-zinc-500 text-sm">No artworks published yet.</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+        {items.map((item) => (
+          <div 
+            key={item.id} 
+            onClick={() => router.push(`/contents/${item.id}`)}
+            className="group relative rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-md transition-all duration-300 hover:scale-[1.02] hover:border-violet-500/30 cursor-pointer"
+          >
+            <div className="aspect-video w-full bg-zinc-900 relative">
+              <img 
+                src={item.imageUrl} 
+                alt={item.description} 
+                className="object-cover w-full h-full"
+              />
+              {item.isSigned && (
+                <div className="absolute top-2 right-2 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 z-10">
+                  <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> Signed
+                </div>
+              )}
+              <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-4">
+                <p className="text-xs text-white truncate max-w-[70%] font-medium">
+                  {item.description}
+                </p>
+                {isOwnProfile && profile.accountType === 1 && item.isSigned && (
+                  <button
+                    onClick={(e) => handleHideSignedContent(e, item.id)}
+                    className="bg-red-500/80 hover:bg-red-600 backdrop-blur-md text-white border border-red-500/30 text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all duration-200 shadow-md hover:scale-105 z-20"
+                    title="Hide from my profile"
+                  >
+                    <EyeOff className="h-3.5 w-3.5" />
+                    Hide
+                  </button>
+                )}
+              </div>
+            </div>
+            <div className="p-4 flex items-center justify-between border-t border-white/5">
+              <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
+                Published Post
+              </span>
+              <button className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-rose-500 transition-colors">
+                <Heart className={`h-4 w-4 ${item.isLikedByCurrentUser ? 'fill-rose-500 text-rose-500' : ''}`} />
+                <strong>{item.likesCount}</strong>
+              </button>
+            </div>
+          </div>
+        ))}
+      </div>
+    );
+  };
 
   return (
     <div className="space-y-6">
@@ -414,16 +538,31 @@ export default function ProfilePage() {
                 <Users className="h-4 w-4 text-zinc-400" />
                 <strong>{profile.followersCount}</strong> followers
               </span>
-              <span>
-                <strong>{profile.followingCount}</strong> following
-              </span>
+              {profile.accountType !== 1 && (
+                <>
+                  <span>
+                    <strong>{profile.followingCount}</strong> following
+                  </span>
+                  <span className="flex items-center gap-1.5" title="Number of unique artists this fan has received signatures from">
+                    <Award className="h-4 w-4 text-amber-400" />
+                    <strong>{profile.signatureRequestCount}</strong> Collector Score
+                  </span>
+                </>
+              )}
               {profile.accountType === 1 && (
-                <span className="flex items-center gap-1.5" title="Prestige score based on incoming signature requests">
-                  <Sparkles className="h-4 w-4 text-amber-300" />
-                  <strong>{profile.signatureRequestCount}</strong> prestige
+                <span className="flex items-center gap-1.5" title="Signature power score based on total autographed creations">
+                  <Sparkles className="h-4 w-4 text-amber-300 animate-pulse" />
+                  <strong>{profile.signatureRequestCount}</strong> Signature Power
                 </span>
               )}
             </div>
+
+            {/* Short Bio Description (Fan Profile) */}
+            {profile.accountType !== 1 && (
+              <p className="text-sm text-zinc-300 mt-3 max-w-xl leading-relaxed whitespace-pre-line text-center md:text-left">
+                {profile.bio || (isOwnProfile ? "No biography provided yet. Set a bio in edit profile." : "")}
+              </p>
+            )}
           </div>
         </div>
 
@@ -473,189 +612,159 @@ export default function ProfilePage() {
       </div>
 
       {/* Profile Details Section */}
-      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
-        {/* Left Side: Bio & Details card */}
-        <div className="lg:col-span-1 space-y-6">
-          <Card className="border-white/10 bg-zinc-950/60 backdrop-blur-md">
-            <CardContent className="p-6 space-y-4">
-              <h3 className="font-bold text-lg text-white flex items-center gap-2">
-                <UserIcon className="h-5 w-5 text-violet-400" />
-                Biography
+      {profile.accountType !== 1 ? (
+        /* Fan Profile Layout */
+        <div className={isOwnProfile ? "grid grid-cols-1 lg:grid-cols-2 gap-8" : "w-full"}>
+          {/* Left Column: Signed Top Contents */}
+          <div className="space-y-4">
+            <div className="flex items-center justify-between border-b border-white/10 pb-3">
+              <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
+                <Award className="h-5 w-5 text-violet-400" />
+                Signed Top Content
               </h3>
-              <p className="text-zinc-400 text-sm leading-relaxed whitespace-pre-line">
-                {profile.bio || "No biography provided yet. Set a bio in edit profile."}
-              </p>
-              
-              <div className="border-t border-white/10 pt-4 flex items-center justify-between text-xs text-zinc-500">
-                <span className="flex items-center gap-1">
-                  <Calendar className="h-3.5 w-3.5" /> Member Since
-                </span>
-                <span>June 2026</span>
+              {isOwnProfile && profile.contents && profile.contents.length > 0 && (
+                <Button
+                  onClick={() => setIsDeleteAllConfirmOpen(true)}
+                  variant="ghost"
+                  className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs font-semibold px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1.5"
+                >
+                  <Trash2 className="h-4 w-4" />
+                  Delete All Content
+                </Button>
+              )}
+            </div>
+
+            {signedTopContents.length === 0 ? (
+              <div className="text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
+                <Award className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
+                <p className="text-zinc-500 text-sm">No signed content yet.</p>
               </div>
-            </CardContent>
-          </Card>
-        </div>
+            ) : (
+              renderContentGrid(signedTopContents)
+            )}
+          </div>
 
-        {/* Right Side: Tabbed Contents */}
-        <div className="lg:col-span-2">
-          {profile.accountType === 1 ? (
-            /* Artist content tab display */
-            <Tabs defaultValue="gallery" className="w-full">
-              <TabsList className="bg-zinc-950/80 border border-white/10 rounded-xl p-1 mb-6">
-                <TabsTrigger value="gallery" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
-                  <span className="flex items-center gap-2">
-                    <Grid className="h-4 w-4" />
-                    Top Collection
-                  </span>
-                </TabsTrigger>
-                <TabsTrigger value="about" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
-                  About
-                </TabsTrigger>
-              </TabsList>
-              
-              <TabsContent value="gallery" className="outline-none space-y-4">
-                {profile.contents && profile.contents.length > 0 ? (
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {profile.contents.map((item) => (
-                      <div 
-                        key={item.id} 
-                        onClick={() => router.push(`/contents/${item.id}`)}
-                        className="group relative rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-md transition-all duration-300 hover:scale-[1.02] hover:border-violet-500/30 cursor-pointer"
-                      >
-                        <div className="aspect-video w-full bg-zinc-900 relative">
-                          <img 
-                            src={item.imageUrl} 
-                            alt={item.description} 
-                            className="object-cover w-full h-full"
-                          />
-                          {item.isSigned && (
-                            <div className="absolute top-2 right-2 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 z-10">
-                              <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> Signed
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-4">
-                            <p className="text-xs text-white truncate max-w-[70%] font-medium">
-                              {item.description}
-                            </p>
-                            {isOwnProfile && profile.accountType === 1 && item.isSigned && (
-                              <button
-                                onClick={(e) => handleHideSignedContent(e, item.id)}
-                                className="bg-red-500/80 hover:bg-red-600 backdrop-blur-md text-white border border-red-500/30 text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all duration-200 shadow-md hover:scale-105 z-20"
-                                title="Hide from my profile"
-                              >
-                                <EyeOff className="h-3.5 w-3.5" />
-                                Hide
-                              </button>
-                            )}
-                          </div>
-                        </div>
-                        <div className="p-4 flex items-center justify-between border-t border-white/5">
-                          <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
-                            Published Post
-                          </span>
-                          <button className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-rose-500 transition-colors">
-                            <Heart className={`h-4 w-4 ${item.isLikedByCurrentUser ? 'fill-rose-500 text-rose-500' : ''}`} />
-                            <strong>{item.likesCount}</strong>
-                          </button>
-                        </div>
+          {/* Right Column: Pending and Rejected Signature Requests (Own Profile only) */}
+          {isOwnProfile && (
+            <div className="space-y-4">
+              <div className="flex items-center justify-between border-b border-white/10 pb-3">
+                <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
+                  <Clock className="h-5 w-5 text-amber-400" />
+                  Requests in Review & Rejected
+                </h3>
+              </div>
+
+              {reviewContents.length === 0 ? (
+                <div className="text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
+                  <Clock className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
+                  <p className="text-zinc-500 text-sm">No pending or rejected requests.</p>
+                </div>
+              ) : (
+                <div className="space-y-4">
+                  {reviewContents.map((req) => (
+                    <div
+                      key={req.id}
+                      onClick={() => router.push(`/contents/${req.contentId}`)}
+                      className="group flex items-start gap-4 p-4 rounded-2xl border border-white/10 bg-zinc-950/50 hover:bg-zinc-950 hover:border-violet-500/30 transition-all duration-300 cursor-pointer"
+                    >
+                      <div className="h-16 w-24 rounded-lg overflow-hidden bg-zinc-900 flex-shrink-0 border border-white/5 relative">
+                        <img
+                          src={req.contentImageUrl}
+                          alt={req.contentTitle}
+                          className="object-cover w-full h-full"
+                        />
                       </div>
-                    ))}
-                  </div>
-                ) : (
-                  <div className="text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
-                    <Sparkles className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
-                    <p className="text-zinc-500 text-sm">No artworks published yet.</p>
-                  </div>
-                )}
-              </TabsContent>
+                      <div className="flex-1 min-w-0 space-y-1">
+                        <div className="flex items-start justify-between gap-2">
+                          <h4 className="text-sm font-bold text-white truncate group-hover:text-violet-400 transition-colors">
+                            {req.contentTitle}
+                          </h4>
+                          {req.status === 0 ? (
+                            <span className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
+                              <Clock className="h-3 w-3" /> In Review
+                            </span>
+                          ) : (
+                            <span className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
+                              <XCircle className="h-3 w-3" /> Rejected
+                            </span>
+                          )}
+                        </div>
+                        <p className="text-xs text-zinc-400">
+                          Artist: <strong className="text-zinc-300">@{req.artistName}</strong>
+                        </p>
+                        {req.message && (
+                          <p className="text-xs text-zinc-500 italic truncate mt-1">
+                            &quot;{req.message}&quot;
+                          </p>
+                        )}
+                      </div>
+                    </div>
+                  ))}
+                </div>
+              )}
+            </div>
+          )}
+        </div>
+      ) : (
+        /* Artist Profile Layout */
+        <div className="w-full">
+          <Tabs defaultValue="gallery" className="w-full">
+            <TabsList className="bg-zinc-950/80 border border-white/10 rounded-xl p-1 mb-6">
+              <TabsTrigger value="gallery" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
+                <span className="flex items-center gap-2">
+                  <Sparkles className="h-4 w-4" />
+                  Top Collection
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="all-contents" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
+                <span className="flex items-center gap-2">
+                  <Grid className="h-4 w-4" />
+                  All Content
+                </span>
+              </TabsTrigger>
+              <TabsTrigger value="about" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
+                About
+              </TabsTrigger>
+            </TabsList>
+            
+            <TabsContent value="gallery" className="outline-none space-y-4">
+              {renderContentGrid(topCollectionContents)}
+            </TabsContent>
 
-              <TabsContent value="about" className="outline-none">
-                <Card className="border-white/10 bg-zinc-950/60 p-6">
+            <TabsContent value="all-contents" className="outline-none space-y-4">
+              {renderContentGrid(allContents)}
+            </TabsContent>
+
+            <TabsContent value="about" className="outline-none">
+              <Card className="border-white/10 bg-zinc-950/60 p-6 space-y-6">
+                <div className="space-y-3">
+                  <h4 className="font-bold text-lg text-white flex items-center gap-2">
+                    <UserIcon className="h-5 w-5 text-violet-400" />
+                    Biography
+                  </h4>
+                  <p className="text-zinc-400 text-sm leading-relaxed whitespace-pre-line">
+                    {profile.bio || "No biography provided yet. Set a bio in edit profile."}
+                  </p>
+                </div>
+
+                <div className="border-t border-white/10 pt-4 flex items-center justify-between text-xs text-zinc-500">
+                  <span className="flex items-center gap-1">
+                    <Calendar className="h-3.5 w-3.5" /> Member Since
+                  </span>
+                  <span>June 2026</span>
+                </div>
+
+                <div className="border-t border-white/10 pt-4">
                   <h4 className="text-white font-bold mb-2">Artist Information</h4>
                   <p className="text-zinc-400 text-sm leading-relaxed">
                     This account is verified as an official Autograph creator. Support them by following, liking, and requesting exclusive custom signatures.
                   </p>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          ) : (
-            /* Fan mode display */
-            <Tabs defaultValue={profile.contents && profile.contents.length > 0 ? "gallery" : "activity"} className="w-full">
-              <TabsList className="bg-zinc-950/80 border border-white/10 rounded-xl p-1 mb-6">
-                {profile.contents && profile.contents.length > 0 && (
-                  <TabsTrigger value="gallery" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
-                    <span className="flex items-center gap-2">
-                      <Grid className="h-4 w-4" />
-                      Gallery
-                    </span>
-                  </TabsTrigger>
-                )}
-                <TabsTrigger value="activity" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
-                  Activity
-                </TabsTrigger>
-                <TabsTrigger value="about" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
-                  About Fan
-                </TabsTrigger>
-              </TabsList>
-              
-              {profile.contents && profile.contents.length > 0 && (
-                <TabsContent value="gallery" className="outline-none space-y-4">
-                  <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-                    {profile.contents.map((item) => (
-                      <div 
-                        key={item.id} 
-                        onClick={() => router.push(`/contents/${item.id}`)}
-                        className="group relative rounded-2xl overflow-hidden border border-white/10 bg-zinc-950 shadow-md transition-all duration-300 hover:scale-[1.02] hover:border-violet-500/30 cursor-pointer"
-                      >
-                        <div className="aspect-video w-full bg-zinc-900 relative">
-                          <img 
-                            src={item.imageUrl} 
-                            alt={item.description} 
-                            className="object-cover w-full h-full"
-                          />
-                          {item.isSigned && (
-                            <div className="absolute top-2 right-2 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 z-10">
-                              <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> Signed
-                            </div>
-                          )}
-                          <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end p-4">
-                            <p className="text-xs text-white truncate max-w-full font-medium">
-                              {item.description}
-                            </p>
-                          </div>
-                        </div>
-                        <div className="p-4 flex items-center justify-between border-t border-white/5">
-                          <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
-                            Published Post
-                          </span>
-                          <button className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-rose-500 transition-colors">
-                            <Heart className={`h-4 w-4 ${item.isLikedByCurrentUser ? 'fill-rose-500 text-rose-500' : ''}`} />
-                            <strong>{item.likesCount}</strong>
-                          </button>
-                        </div>
-                      </div>
-                    ))}
-                  </div>
-                </TabsContent>
-              )}
-
-              <TabsContent value="activity" className="outline-none text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
-                <Sparkles className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
-                <p className="text-zinc-500 text-sm">No fan activity records found.</p>
-              </TabsContent>
-
-              <TabsContent value="about" className="outline-none">
-                <Card className="border-white/10 bg-zinc-950/60 p-6">
-                  <h4 className="text-white font-bold mb-2">Fan Account Details</h4>
-                  <p className="text-zinc-400 text-sm leading-relaxed">
-                    A registered supporter of the Autograph platform. Connect with other fans and order high-end signature requests from verified artists.
-                  </p>
-                </Card>
-              </TabsContent>
-            </Tabs>
-          )}
+                </div>
+              </Card>
+            </TabsContent>
+          </Tabs>
         </div>
-      </div>
+      )}
 
       {/* Edit Profile Modal (Shadcn Dialog) */}
       <Dialog open={isEditOpen} onOpenChange={setIsEditOpen}>
@@ -758,6 +867,55 @@ export default function ProfilePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
+      
+      {/* Delete All Content Confirmation Dialog */}
+      <Dialog open={isDeleteAllConfirmOpen} onOpenChange={setIsDeleteAllConfirmOpen}>
+        <DialogContent className="max-w-sm sm:max-w-md bg-zinc-950/95 border-white/10 text-white shadow-2xl backdrop-blur-md rounded-2xl p-6">
+          <DialogHeader className="flex flex-col items-center justify-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-500/10 text-rose-500 ring-8 ring-rose-500/5">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <DialogTitle className="text-lg font-bold text-white mt-4 text-center">
+              Tüm İçerikleri Sil
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-sm text-center mt-2 leading-relaxed">
+              Tüm içeriklerinizi silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm imzalı içerikleriniz kalıcı olarak silinecektir.
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="flex flex-row gap-3 mt-6 sm:justify-center w-full">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsDeleteAllConfirmOpen(false)}
+              disabled={deletingAll}
+              className="flex-1 py-5 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all text-xs font-semibold cursor-pointer"
+            >
+              İptal
+            </Button>
+            <Button
+              type="button"
+              onClick={handleDeleteAllContent}
+              disabled={deletingAll}
+              className="flex-1 py-5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-lg shadow-rose-500/20 active:scale-95 transition-all text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              {deletingAll ? (
+                <>
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
+                  Siliniyor...
+                </>
+              ) : (
+                <>
+                  <Trash2 className="h-3.5 w-3.5" />
+                  Tümünü Sil
+                </>
+              )}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      <LogoutConfirmDialog isOpen={isLogoutDialogOpen} onClose={() => setIsLogoutDialogOpen(false)} />
     </div>
   );
 }
