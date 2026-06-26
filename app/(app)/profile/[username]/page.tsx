@@ -105,7 +105,8 @@ export default function ProfilePage() {
   const isOwnProfile = 
     !params?.username || 
     params.username === 'me' || 
-    params.username === currentUser?.userName;
+    params.username === currentUser?.userName ||
+    (profile !== null && profile.id === currentUser?.id);
 
   const fetchProfile = async () => {
     setLoading(true);

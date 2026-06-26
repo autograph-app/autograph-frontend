@@ -28,25 +28,36 @@ interface FeedItem {
 
 export default function ExplorePage() {
   const router = useRouter();
-  const [searchId, setSearchId] = useState('');
+  const [searchQuery, setSearchQuery] = useState('');
+  const [searchResults, setSearchResults] = useState<any[]>([]);
+  const [searchLoading, setSearchLoading] = useState(false);
   const [trendingItems, setTrendingItems] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [page, setPage] = useState(0);
   const [hasMore, setHasMore] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
 
-  const handleSearch = (e: React.FormEvent) => {
+  const handleSearch = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (!searchId) return;
+    if (!searchQuery.trim()) return;
 
-    // Validate Guid format
-    const guidRegex = /^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i;
-    if (!guidRegex.test(searchId.trim())) {
-      toast.error('Please enter a valid User Guid (UUID) format.');
-      return;
+    setSearchLoading(true);
+    try {
+      const response = await api.get('/users/search', {
+        params: { query: searchQuery.trim() }
+      });
+      if (response.data?.success) {
+        setSearchResults(response.data.data);
+        if (response.data.data.length === 0) {
+          toast.info('No profiles found matching your query.');
+        }
+      }
+    } catch (err) {
+      console.error('Search failed:', err);
+      toast.error('Search failed. Please try again.');
+    } finally {
+      setSearchLoading(false);
     }
-
-    router.push(`/profile/${searchId.trim()}`);
   };
 
   const fetchExplore = useCallback(async (pageIndex: number, append = false) => {
@@ -164,25 +175,65 @@ export default function ExplorePage() {
         <CardHeader>
           <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
             <Search className="h-4 w-4 text-violet-400" />
-            Lookup Profile by GUID
+            Search Profiles
           </CardTitle>
         </CardHeader>
-        <CardContent>
+        <CardContent className="space-y-4">
           <form onSubmit={handleSearch} className="flex gap-2 max-w-xl">
             <Input
               type="text"
-              placeholder="e.g. d2f214e4-b3ff-4a4b-8524-7b19bf35a4d1"
-              value={searchId}
-              onChange={(e) => setSearchId(e.target.value)}
+              placeholder="Search by name or username..."
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 h-11 border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
             />
-            <Button type="submit" className="h-11 px-6 bg-violet-600 hover:bg-violet-500 cursor-pointer">
-              Lookup
+            <Button type="submit" disabled={searchLoading} className="h-11 px-6 bg-violet-600 hover:bg-violet-500 cursor-pointer">
+              {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
             </Button>
           </form>
-          <p className="text-[11px] text-zinc-500 mt-2 flex items-center gap-1.5">
-            <ShieldAlert className="h-3.5 w-3.5" /> Note: Currently, public search is conducted directly via User Identifier UUIDs.
-          </p>
+
+          {/* Search Results */}
+          {searchResults.length > 0 && (
+            <div className="border-t border-white/5 pt-4 space-y-3 max-w-xl">
+              <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Search Results</h4>
+              <div className="space-y-2">
+                {searchResults.map((user) => (
+                  <div 
+                    key={user.id} 
+                    className="flex items-center justify-between p-3 rounded-xl bg-zinc-900/40 border border-white/5 hover:border-white/10 transition-colors"
+                  >
+                    <div className="flex items-center gap-3 min-w-0">
+                      <div className="flex h-9 w-9 items-center justify-center rounded-full bg-zinc-800 text-xs font-bold text-white border border-white/10 overflow-hidden">
+                        {user.avatarUrl ? (
+                          <img src={user.avatarUrl} alt={user.userName} className="w-full h-full object-cover" />
+                        ) : (
+                          (user.displayName || user.userName).slice(0, 2).toUpperCase()
+                        )}
+                      </div>
+                      <div className="min-w-0">
+                        <div className="flex items-center gap-1">
+                          <span className="font-bold text-sm text-white truncate">
+                            {user.displayName || user.userName}
+                          </span>
+                          {user.isVerified && (
+                            <CheckCircle2 className="h-3.5 w-3.5 text-sky-400 fill-sky-400/20" />
+                          )}
+                        </div>
+                        <span className="text-xs text-zinc-500 block">@{user.userName}</span>
+                      </div>
+                    </div>
+                    <Button 
+                      size="sm" 
+                      onClick={() => router.push(`/profile/${user.id}`)}
+                      className="h-8 bg-zinc-800 hover:bg-zinc-700 text-white text-xs border border-white/10 rounded-lg cursor-pointer"
+                    >
+                      View Profile
+                    </Button>
+                  </div>
+                ))}
+              </div>
+            </div>
+          )}
         </CardContent>
       </Card>
 

@@ -184,11 +184,11 @@ export default function LoginPage() {
               </div>
             </CardContent>
 
-            <CardFooter className="flex flex-col space-y-4 bg-transparent border-t-0 pt-0">
+            <CardFooter className="flex flex-col space-y-4 bg-transparent border-t-0 pt-4">
               <Button
                 type="submit"
                 disabled={isLoading}
-                className="w-full h-11 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-violet-600/20 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
+                className="w-full h-11 bg-violet-600 hover:bg-violet-500 text-white font-semibold rounded-xl shadow-lg shadow-violet-500/10 transition-all duration-300 active:scale-95 disabled:opacity-50 disabled:cursor-not-allowed cursor-pointer"
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">

@@ -159,6 +159,12 @@
   -webkit-text-fill-color: transparent;
 }
 
+/* Hide default eye icon for password inputs in Edge / IE */
+input::-ms-reveal,
+input::-ms-clear {
+  display: none;
+}
+
 /* Hide browser-native password reveal buttons to avoid duplicate eye icons. */
 input[type='password']::-ms-reveal,
 input[type='password']::-ms-clear {

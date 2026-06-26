@@ -8,6 +8,7 @@ import { Heart, MessageCircle, Send, Award, CheckCircle2, Sparkles, Loader2, Ref
 import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
+import { useAuthStore } from '@/store/authStore';
 
 interface FeedItem {
   id: string;
@@ -37,6 +38,7 @@ interface SuggestedCreator {
 
 export default function FeedPage() {
   const router = useRouter();
+  const currentUser = useAuthStore((state) => state.user);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
   const [loadingMore, setLoadingMore] = useState(false);
@@ -50,13 +52,15 @@ export default function FeedPage() {
     try {
       const response = await api.get('/users/artists');
       if (response.data?.success) {
-        const fetched = response.data.data.map((art: { id: string; displayName?: string; userName: string }) => ({
-          id: art.id,
-          name: art.displayName || art.userName,
-          username: art.userName,
-          initials: (art.displayName || art.userName).slice(0, 2).toUpperCase(),
-          isFollowing: false,
-        }));
+        const fetched = response.data.data
+          .filter((art: { id: string }) => art.id !== currentUser?.id)
+          .map((art: { id: string; displayName?: string; userName: string; isFollowing: boolean }) => ({
+            id: art.id,
+            name: art.displayName || art.userName,
+            username: art.userName,
+            initials: (art.displayName || art.userName).slice(0, 2).toUpperCase(),
+            isFollowing: art.isFollowing,
+          }));
         setSuggestions(fetched);
       }
     } catch (err) {
