@@ -117,7 +117,7 @@ export default function RegisterPage() {
                   <Input
                     {...register('username')}
                     type="text"
-                    placeholder="johndoe"
+                    placeholder={t('auth.usernamePlaceholder')}
                     className="pl-10 h-11 border-white/10 bg-black/40 text-white placeholder:text-zinc-500 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
                     aria-invalid={errors.username ? 'true' : 'false'}
                   />
@@ -165,7 +165,7 @@ export default function RegisterPage() {
                   <Input
                     {...register('password')}
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    placeholder={t('auth.passwordPlaceholder')}
                     className="pl-10 pr-10 h-11 border-white/10 bg-black/40 text-white placeholder:text-zinc-500 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
                     aria-invalid={errors.password ? 'true' : 'false'}
                   />
