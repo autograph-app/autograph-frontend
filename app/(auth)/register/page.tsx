@@ -65,8 +65,12 @@ export default function RegisterPage() {
       }
     } catch (error: unknown) {
       console.error(error);
-      const err = error as { response?: { data?: { message?: string } } };
-      const errMsg = err.response?.data?.message || t('auth.registerFailed');
+      const err = error as { response?: { data?: { detail?: string; title?: string; message?: string } } };
+      const errMsg = 
+        err.response?.data?.detail || 
+        err.response?.data?.message || 
+        err.response?.data?.title || 
+        t('auth.registerFailed');
       toast.error(errMsg);
     } finally {
       setIsLoading(false);

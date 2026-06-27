@@ -91,8 +91,12 @@ export default function LoginPage() {
       }
     } catch (error: unknown) {
       console.error(error);
-      const err = error as { response?: { data?: { message?: string } } };
-      const errMsg = err.response?.data?.message || 'Login failed. Please check your credentials.';
+      const err = error as { response?: { data?: { detail?: string; title?: string; message?: string } } };
+      const errMsg = 
+        err.response?.data?.detail || 
+        err.response?.data?.message || 
+        err.response?.data?.title || 
+        'Login failed. Please check your credentials.';
       toast.error(errMsg);
     } finally {
       setIsLoading(false);
