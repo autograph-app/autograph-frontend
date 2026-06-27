@@ -22,8 +22,7 @@ import {
   EyeOff,
   LogOut,
   Clock,
-  XCircle,
-  Trash2
+  XCircle
 } from 'lucide-react';
 
 import { useAuthStore } from '@/store/authStore';
@@ -100,8 +99,6 @@ export default function ProfilePage() {
 
   // Outgoing signature requests state for fan review section
   const [signatureRequests, setSignatureRequests] = useState<SignatureRequestDto[]>([]);
-  const [deletingAll, setDeletingAll] = useState(false);
-  const [isDeleteAllConfirmOpen, setIsDeleteAllConfirmOpen] = useState(false);
 
   const handleLogout = () => {
     setIsLogoutDialogOpen(true);
@@ -344,26 +341,6 @@ export default function ProfilePage() {
       console.error('Hide signed content failed:', error);
       const err = error as { response?: { data?: { message?: string } } };
       toast.error(err.response?.data?.message || t('profile.toast.contentHideFailed'));
-    }
-  };
-
-  const handleDeleteAllContent = async () => {
-    setDeletingAll(true);
-    try {
-      const response = await api.delete('/contents');
-      if (response.data?.success) {
-        toast.success(response.data?.message || t('profile.toast.contentsDeleted'));
-        setIsDeleteAllConfirmOpen(false);
-        fetchProfile();
-      } else {
-        toast.error(t('profile.toast.deleteContentsFailed'));
-      }
-    } catch (error: unknown) {
-      console.error('Delete all contents failed:', error);
-      const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || t('profile.toast.deleteContentsFailed'));
-    } finally {
-      setDeletingAll(false);
     }
   };
 
@@ -624,16 +601,6 @@ export default function ProfilePage() {
                 <Award className="h-5 w-5 text-violet-400" />
                 {t('profile.signedTopContent')}
               </h3>
-              {isOwnProfile && profile.contents && profile.contents.length > 0 && (
-                <Button
-                  onClick={() => setIsDeleteAllConfirmOpen(true)}
-                  variant="ghost"
-                  className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs font-semibold px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1.5"
-                >
-                  <Trash2 className="h-4 w-4" />
-                  {t('profile.deleteAllContent')}
-                </Button>
-              )}
             </div>
 
             {signedTopContents.length === 0 ? (
@@ -869,54 +836,6 @@ export default function ProfilePage() {
           </DialogFooter>
         </DialogContent>
       </Dialog>
-      
-      {/* Delete All Content Confirmation Dialog */}
-      <Dialog open={isDeleteAllConfirmOpen} onOpenChange={setIsDeleteAllConfirmOpen}>
-        <DialogContent className="max-w-sm sm:max-w-md bg-zinc-950/95 border-white/10 text-white shadow-2xl backdrop-blur-md rounded-2xl p-6">
-          <DialogHeader className="flex flex-col items-center justify-center">
-            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-500/10 text-rose-500 ring-8 ring-rose-500/5">
-              <Trash2 className="h-5 w-5" />
-            </div>
-            <DialogTitle className="text-lg font-bold text-white mt-4 text-center">
-              {t('profile.deleteConfirm.title')}
-            </DialogTitle>
-            <DialogDescription className="text-zinc-400 text-sm text-center mt-2 leading-relaxed">
-              {t('profile.deleteConfirm.description')}
-            </DialogDescription>
-          </DialogHeader>
-
-          <DialogFooter className="flex flex-row gap-3 mt-6 sm:justify-center w-full">
-            <Button
-              type="button"
-              variant="ghost"
-              onClick={() => setIsDeleteAllConfirmOpen(false)}
-              disabled={deletingAll}
-              className="flex-1 py-5 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all text-xs font-semibold cursor-pointer"
-            >
-              {t('profile.deleteConfirm.cancel')}
-            </Button>
-            <Button
-              type="button"
-              onClick={handleDeleteAllContent}
-              disabled={deletingAll}
-              className="flex-1 py-5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-lg shadow-rose-500/20 active:scale-95 transition-all text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5"
-            >
-              {deletingAll ? (
-                <>
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  {t('profile.deleteConfirm.deleting')}
-                </>
-              ) : (
-                <>
-                  <Trash2 className="h-3.5 w-3.5" />
-                  {t('profile.deleteConfirm.confirm')}
-                </>
-              )}
-            </Button>
-          </DialogFooter>
-        </DialogContent>
-      </Dialog>
-
       <LogoutConfirmDialog isOpen={isLogoutDialogOpen} onClose={() => setIsLogoutDialogOpen(false)} />
     </div>
   );

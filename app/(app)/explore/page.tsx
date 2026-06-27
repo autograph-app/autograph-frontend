@@ -1,14 +1,16 @@
 'use client';
 
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
+import { createPortal } from 'react-dom';
 import { useRouter } from 'next/navigation';
 import { Input } from '@/components/ui/input';
 import { Button } from '@/components/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Search, Compass, Sparkles, Flame, Star, Loader2, Heart, CheckCircle2, X } from 'lucide-react';
+import { Search, Compass, Sparkles, Flame, Star, Loader2, Heart, CheckCircle2, X, Award } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
 import { useI18n } from '@/components/providers/I18nProvider';
+import { Badge } from '@/components/ui/badge';
 
 interface FeedItem {
   id: string;
@@ -26,6 +28,8 @@ interface FeedItem {
   creatorIsVerified: boolean;
   createdDate: string;
   isLikedByCurrentUser: boolean;
+  signerName?: string | null;
+  signerUsername?: string | null;
 }
 
 interface UserSearchResult {
@@ -34,6 +38,7 @@ interface UserSearchResult {
   displayName: string;
   avatarUrl: string | null;
   isVerified: boolean;
+  accountType: number;
 }
 
 type CategoryKey = 'digital' | 'sports' | 'music';
@@ -322,12 +327,17 @@ export default function ExplorePage() {
                         )}
                       </div>
                       <div className="min-w-0">
-                        <div className="flex items-center gap-1">
+                        <div className="flex items-center gap-1.5 flex-wrap">
                           <span className="font-bold text-sm text-white truncate">
                             {user.displayName || user.userName}
                           </span>
                           {user.isVerified && (
-                            <CheckCircle2 className="h-3.5 w-3.5 text-sky-400 fill-sky-400/20" />
+                            <CheckCircle2 className="h-3.5 w-3.5 text-sky-400 fill-sky-400/20 shrink-0" />
+                          )}
+                          {user.accountType === 1 && (
+                            <Badge className="bg-violet-500/10 text-violet-400 border border-violet-500/20 text-[9px] px-1.5 py-0 rounded-full font-bold uppercase tracking-wider shrink-0 select-none">
+                              Artist
+                            </Badge>
                           )}
                         </div>
                         <span className="text-xs text-zinc-500 block">@{user.userName}</span>
@@ -469,7 +479,7 @@ export default function ExplorePage() {
         )}
       </div>
 
-      {activeExperience && (
+      {activeExperience && typeof window !== 'undefined' && createPortal(
         <div className="fixed inset-0 z-50 bg-black/90 backdrop-blur-md">
           <div className="mx-auto flex h-full max-w-3xl flex-col p-3 sm:p-5">
             <div className="mb-3 flex items-center justify-between rounded-xl border border-white/10 bg-zinc-950/80 p-3">
@@ -488,36 +498,42 @@ export default function ExplorePage() {
               </Button>
             </div>
 
-            <div className="h-[calc(100vh-110px)] overflow-y-auto snap-y snap-mandatory space-y-4 pr-1">
+            <div className="h-[calc(100vh-120px)] overflow-y-auto snap-y snap-mandatory space-y-4 pr-1">
               {activeExperience.items.map((item) => (
                 <article
                   id={`explore-slide-${item.id}`}
                   key={item.id}
-                  className="snap-start min-h-[calc(100vh-150px)] rounded-2xl border border-white/10 bg-zinc-950 overflow-hidden"
+                  className="snap-start h-[calc(100vh-140px)] rounded-2xl border border-white/10 bg-zinc-950 overflow-hidden flex flex-col"
                 >
-                  <div className="relative h-[70vh] min-h-[320px] bg-zinc-900">
+                  <div className="relative flex-1 min-h-0 bg-zinc-900">
                     <img
                       src={item.imageUrl}
                       alt={item.title}
-                      className="h-full w-full object-cover"
+                      className="h-full w-full object-contain"
                     />
-                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black via-black/20 to-transparent pointer-events-none" />
                     {item.isSigned && (
-                      <div className="absolute right-4 top-4 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
+                      <div className="absolute right-4 top-4 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1 z-10">
                         <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> {t('explore.signed')}
                       </div>
                     )}
+                    {item.isSigned && item.signerName && (
+                      <div className="absolute left-4 top-4 bg-black/60 backdrop-blur-md text-white border border-white/10 text-[10px] px-2.5 py-1 rounded-lg flex items-center gap-1.5 font-medium shadow-md z-10">
+                        <Award className="h-3.5 w-3.5 text-yellow-400" />
+                        <span>Signed by <strong className="text-violet-300">{item.signerName}</strong></span>
+                      </div>
+                    )}
 
-                    <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
+                    <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5 bg-gradient-to-t from-black/80 to-transparent pointer-events-none">
                       <h3 className="text-xl sm:text-2xl font-extrabold text-white">{item.title}</h3>
                       <p className="mt-1 text-sm text-zinc-300">{t('explore.by', { username: item.creatorUsername })}</p>
                       {item.description && (
-                        <p className="mt-3 line-clamp-3 text-sm text-zinc-300/90">{item.description}</p>
+                        <p className="mt-2 line-clamp-2 text-xs text-zinc-300/80">{item.description}</p>
                       )}
                     </div>
                   </div>
 
-                  <div className="flex items-center justify-between gap-3 p-4 border-t border-white/5">
+                  <div className="flex items-center justify-between gap-3 p-4 border-t border-white/5 bg-zinc-950 shrink-0 h-16">
                     <div className="flex items-center gap-2 text-xs text-zinc-400">
                       <span>{t('explore.signatures', { count: String(item.signatureCount) })}</span>
                       <span className="text-zinc-700">|</span>
@@ -539,7 +555,7 @@ export default function ExplorePage() {
                         onClick={() => router.push(`/contents/${item.id}`)}
                         className="h-9 px-3 text-xs border border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 cursor-pointer"
                       >
-                          {t('explore.openDetail')}
+                        {t('explore.openDetail')}
                       </Button>
                     </div>
                   </div>
@@ -547,7 +563,8 @@ export default function ExplorePage() {
               ))}
             </div>
           </div>
-        </div>
+        </div>,
+        document.body
       )}
     </div>
   );

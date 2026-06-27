@@ -95,7 +95,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
 
   if (!mounted || !token) {
     return (
-      <div className="flex min-h-screen items-center justify-center bg-black text-white">
+      <div className="flex min-h-screen items-center justify-center bg-background text-foreground">
         <Loader2 className="h-8 w-8 animate-spin text-violet-500" />
       </div>
     );
@@ -129,7 +129,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   };
 
   return (
-    <div className="min-h-screen bg-black text-white font-sans flex flex-col md:flex-row">
+    <div className="min-h-screen bg-background text-foreground font-sans flex flex-col md:flex-row">
       {/* Background radial ambient lights */}
       <div className="fixed inset-0 pointer-events-none overflow-hidden">
         <div className="absolute top-[-10%] left-[-10%] h-[500px] w-[500px] rounded-full bg-violet-600/5 blur-[120px]" />
@@ -137,7 +137,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </div>
 
       {/* Desktop Sidebar */}
-      <aside className="hidden md:flex flex-col w-64 bg-zinc-950/80 border-r border-white/10 p-6 z-20 backdrop-blur-md sticky top-0 h-screen">
+      <aside className="hidden md:flex flex-col w-64 bg-card/80 border-r border-border p-6 z-20 backdrop-blur-md sticky top-0 h-screen">
         {/* Brand Logo */}
         <div 
           onClick={() => router.push('/feed')} 
@@ -227,7 +227,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       </aside>
 
       {/* Mobile Top Header */}
-      <header className="md:hidden flex items-center justify-between bg-zinc-950/90 border-b border-white/10 px-5 py-4 sticky top-0 z-30 backdrop-blur-md w-full">
+      <header className="md:hidden flex items-center justify-between bg-card/90 border-b border-border px-5 py-4 sticky top-0 z-30 backdrop-blur-md w-full">
         <div 
           onClick={() => {
             router.push('/feed');
@@ -328,14 +328,14 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       )}
 
       {/* Main Content Area */}
-      <main className="flex-1 min-w-0 bg-black min-h-[calc(100vh-65px)] md:min-h-screen p-4 sm:p-6 md:p-8 pb-20 md:pb-8 overflow-y-auto">
+      <main className="flex-1 min-w-0 bg-background text-foreground min-h-[calc(100vh-65px)] md:min-h-screen p-4 sm:p-6 md:p-8 pb-20 md:pb-8 overflow-y-auto">
         <div className="max-w-5xl mx-auto h-full flex flex-col animate-soft-fade">
           {children}
         </div>
       </main>
 
       {/* Mobile Bottom Navigation Bar */}
-      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur-md border-t border-white/10 px-6 py-2 flex items-center justify-around">
+      <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-card/95 backdrop-blur-md border-t border-border px-6 py-2 flex items-center justify-around">
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
           const isActive = pathname === item.href || (item.id === 'myProfile' && pathname.startsWith('/profile'));

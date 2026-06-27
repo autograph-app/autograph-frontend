@@ -23,6 +23,9 @@ export default function ContentPage() {
   const [file, setFile] = useState<File | null>(null);
   const [previewUrl, setPreviewUrl] = useState<string | null>(null);
   const [isUploading, setIsUploading] = useState(false);
+  const [artists, setArtists] = useState<any[]>([]);
+  const [selectedArtistId, setSelectedArtistId] = useState<string>('');
+  const [personalMessage, setPersonalMessage] = useState('');
 
   React.useEffect(() => {
     if (user && user.accountType === 1) {
@@ -30,6 +33,21 @@ export default function ContentPage() {
       toast.error(t('content.page.error.artistCannotPublish'));
     }
   }, [user, router, t]);
+
+  React.useEffect(() => {
+    const fetchArtists = async () => {
+      try {
+        const { api } = await import('@/lib/api');
+        const response = await api.get('/users/artists');
+        if (response.data?.success) {
+          setArtists(response.data.data);
+        }
+      } catch (err) {
+        console.error('Failed to load artists:', err);
+      }
+    };
+    fetchArtists();
+  }, []);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
@@ -73,12 +91,28 @@ export default function ContentPage() {
       });
 
       if (response.data?.success) {
+        const publishedContent = response.data.data;
+        if (selectedArtistId) {
+          try {
+            await api.post('/signature-requests', {
+              contentId: publishedContent.id,
+              artistId: selectedArtistId,
+              message: personalMessage.trim() || undefined
+            });
+            toast.success(t('content.page.requestSent'));
+          } catch (sigErr) {
+            console.error('Failed to auto-request signature:', sigErr);
+          }
+        }
+
         toast.success(t('content.page.success.published'));
         setFile(null);
         setPreviewUrl(null);
         setTitle('');
         setDescription('');
         setCategory('DigitalArts');
+        setSelectedArtistId('');
+        setPersonalMessage('');
         router.push(user ? `/profile/${user.userName}` : '/feed');
       } else {
         toast.error(response.data?.message || t('content.page.error.publishFailed'));
@@ -216,6 +250,42 @@ export default function ContentPage() {
                   <option value="SportsMemorabilia" className="bg-zinc-900">{t('content.page.category.sports')}</option>
                   <option value="MusicCollectibles" className="bg-zinc-900">{t('content.page.category.music')}</option>
                 </select>
+              </div>
+
+              {/* Optional Artist Selection for Autograph request */}
+              <div className="space-y-1.5 border-t border-white/5 pt-4">
+                <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block">
+                  Select Artist for Signature Request (Optional)
+                </label>
+                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                  <div>
+                    <select
+                      value={selectedArtistId}
+                      onChange={(e) => setSelectedArtistId(e.target.value)}
+                      className="w-full h-11 px-3 rounded-lg border border-white/10 bg-black text-white focus:outline-none focus:ring-1 focus:ring-violet-500 text-sm cursor-pointer"
+                      disabled={isUploading}
+                    >
+                      <option value="" className="bg-zinc-950 text-zinc-500">-- None (Do not request signature) --</option>
+                      {artists.map((artist) => (
+                        <option key={artist.id} value={artist.id} className="bg-zinc-950 text-white">
+                          {artist.displayName || artist.userName} (@{artist.userName})
+                        </option>
+                      ))}
+                    </select>
+                  </div>
+                  {selectedArtistId && (
+                    <div>
+                      <Input
+                        placeholder="Add a friendly message (optional)..."
+                        value={personalMessage}
+                        onChange={(e) => setPersonalMessage(e.target.value)}
+                        className="border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500"
+                        disabled={isUploading}
+                        maxLength={200}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
 
               <Button

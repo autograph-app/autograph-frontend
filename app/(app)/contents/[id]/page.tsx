@@ -15,7 +15,9 @@ import {
   Copy,
   Clock,
   XCircle,
-  Info
+  Info,
+  ArrowLeft,
+  Trash2
 } from 'lucide-react';
 import { useAuthStore } from '@/store/authStore';
 import { Button } from '@/components/ui/button';
@@ -79,6 +81,29 @@ export default function ContentDetailPage() {
   const [signatureRequest, setSignatureRequest] = useState<any | null>(null);
   const [artists, setArtists] = useState<any[]>([]);
   const [selectedArtistId, setSelectedArtistId] = useState<string>('');
+  const [isDeleteConfirmOpen, setIsDeleteConfirmOpen] = useState(false);
+  const [isDeleting, setIsDeleting] = useState(false);
+
+  const handleDeleteContent = async () => {
+    if (!content) return;
+    setIsDeleting(true);
+    try {
+      const { api } = await import('@/lib/api');
+      const response = await api.delete(`/contents/${content.id}`);
+      if (response.data?.success) {
+        toast.success(t('content.page.success.deleted'));
+        setIsDeleteConfirmOpen(false);
+        router.push(currentUser ? `/profile/${currentUser.userName}` : '/feed');
+      } else {
+        toast.error(response.data?.message || 'Delete failed.');
+      }
+    } catch (err: any) {
+      console.error(err);
+      toast.error(err.response?.data?.message || 'Failed to delete content.');
+    } finally {
+      setIsDeleting(false);
+    }
+  };
 
   const fetchContentDetail = async () => {
     if (!params?.id) return;
@@ -215,7 +240,16 @@ export default function ContentDetailPage() {
   }
 
   return (
-    <div className="space-y-8 animate-in fade-in duration-500">
+    <div className="space-y-6 animate-in fade-in duration-500">
+      <Button 
+        variant="ghost" 
+        onClick={() => router.back()} 
+        className="text-zinc-400 hover:text-white flex items-center gap-2 px-0 hover:bg-transparent cursor-pointer"
+      >
+        <ArrowLeft className="h-4 w-4" />
+        {t('content.page.backToFeed')}
+      </Button>
+
       <div className="flex items-center justify-between">
         <div>
           <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
@@ -229,6 +263,17 @@ export default function ContentDetailPage() {
               <ShieldCheck className="h-3.5 w-3.5" />
               {t('content.page.verifiedAutographed')}
             </Badge>
+          )}
+          {isOwnContent && (
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setIsDeleteConfirmOpen(true)}
+              className="border-rose-500/30 text-rose-400 hover:bg-rose-500/10 hover:text-rose-300 text-xs font-semibold rounded-full px-4 py-1.5 flex items-center gap-1.5 cursor-pointer h-8"
+            >
+              <Trash2 className="h-4 w-4" />
+              {t('content.page.delete')}
+            </Button>
           )}
         </div>
       </div>
@@ -582,8 +627,44 @@ export default function ContentDetailPage() {
               </CardContent>
             </Card>
           )}
-        </div>
       </div>
+    </div>
+
+      <Dialog open={isDeleteConfirmOpen} onOpenChange={setIsDeleteConfirmOpen}>
+        <DialogContent className="max-w-sm sm:max-w-md bg-zinc-950/95 border-white/10 text-white shadow-2xl backdrop-blur-md rounded-2xl p-6">
+          <DialogHeader className="flex flex-col items-center justify-center">
+            <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-rose-500/10 text-rose-500 ring-8 ring-rose-500/5">
+              <Trash2 className="h-5 w-5" />
+            </div>
+            <DialogTitle className="text-lg font-bold text-white mt-4 text-center">
+              {t('content.page.delete')}
+            </DialogTitle>
+            <DialogDescription className="text-zinc-400 text-sm text-center mt-2 leading-relaxed">
+              {t('content.page.deleteConfirm')}
+            </DialogDescription>
+          </DialogHeader>
+
+          <DialogFooter className="flex flex-row gap-3 mt-6 sm:justify-center w-full">
+            <Button
+              type="button"
+              variant="ghost"
+              onClick={() => setIsDeleteConfirmOpen(false)}
+              disabled={isDeleting}
+              className="flex-1 py-5 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 text-xs font-semibold cursor-pointer"
+            >
+              Cancel
+            </Button>
+            <Button
+              type="button"
+              onClick={handleDeleteContent}
+              disabled={isDeleting}
+              className="flex-1 py-5 rounded-xl bg-gradient-to-r from-rose-600 to-red-600 hover:from-rose-500 hover:to-red-500 text-white shadow-lg active:scale-95 transition-all text-xs font-semibold cursor-pointer flex items-center justify-center gap-1.5"
+            >
+              {isDeleting ? t('content.page.deleting') : t('content.page.delete')}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
     </div>
   );
 }
