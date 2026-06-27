@@ -1,6 +1,7 @@
 /* eslint-disable @typescript-eslint/no-explicit-any, @next/next/no-location-assign-relative-destination */
 import axios from 'axios';
 import { useAuthStore } from '../store/authStore';
+import { useLanguageStore } from '../store/languageStore';
 
 const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:5036';
 
@@ -15,9 +16,11 @@ export const api = axios.create({
 api.interceptors.request.use(
   (config) => {
     const token = useAuthStore.getState().token;
+    const language = useLanguageStore.getState().language;
     if (token) {
       config.headers.Authorization = `Bearer ${token}`;
     }
+    config.headers['Accept-Language'] = language;
     return config;
   },
   (error) => {

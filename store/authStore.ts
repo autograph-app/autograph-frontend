@@ -8,6 +8,7 @@ interface User {
   displayName?: string;
   avatarUrl?: string;
   bio?: string;
+  preferredLanguage?: 'en' | 'tr';
   accountType: number; // 0: Fan, 1: Artist, 2: Admin
   isVerified: boolean;
   isPremium: boolean;

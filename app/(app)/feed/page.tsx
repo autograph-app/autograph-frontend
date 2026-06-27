@@ -9,6 +9,7 @@ import { Button } from '@/components/ui/button';
 import { api } from '@/lib/api';
 import { toast } from 'sonner';
 import { useAuthStore } from '@/store/authStore';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 interface FeedItem {
   id: string;
@@ -38,6 +39,7 @@ interface SuggestedCreator {
 
 export default function FeedPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const currentUser = useAuthStore((state) => state.user);
   const [feed, setFeed] = useState<FeedItem[]>([]);
   const [loading, setLoading] = useState(true);
@@ -48,7 +50,7 @@ export default function FeedPage() {
   // Suggested creators list with functional follow actions
   const [suggestions, setSuggestions] = useState<SuggestedCreator[]>([]);
 
-  const fetchSuggestions = async () => {
+  const fetchSuggestions = useCallback(async () => {
     try {
       const response = await api.get('/users/artists');
       if (response.data?.success) {
@@ -66,7 +68,7 @@ export default function FeedPage() {
     } catch (err) {
       console.error('Failed to load artist suggestions:', err);
     }
-  };
+  }, [currentUser?.id]);
 
   const fetchFeed = useCallback(async (pageIndex: number, append = false) => {
     if (pageIndex === 0) setLoading(true);
@@ -97,12 +99,12 @@ export default function FeedPage() {
       }
     } catch (error) {
       console.error('Failed to load feed:', error);
-      toast.error('Could not load feed.');
+      toast.error(t('feed.error.load'));
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const handle = requestAnimationFrame(() => {
@@ -110,7 +112,7 @@ export default function FeedPage() {
       fetchSuggestions();
     });
     return () => cancelAnimationFrame(handle);
-  }, [fetchFeed]);
+  }, [fetchFeed, fetchSuggestions]);
 
   const handleRefresh = () => {
     setPage(0);
@@ -163,7 +165,7 @@ export default function FeedPage() {
           return item;
         })
       );
-      toast.error('Action failed. Please try again.');
+      toast.error(t('feed.error.actionFailed'));
     }
   };
 
@@ -177,16 +179,16 @@ export default function FeedPage() {
     try {
       if (creator.isFollowing) {
         await api.delete(`/users/${creatorId}/follow`);
-        toast.success(`Unfollowed @${creator.username}`);
+        toast.success(t('feed.toast.unfollowed', { username: creator.username }));
       } else {
         await api.post(`/users/${creatorId}/follow`);
-        toast.success(`Following @${creator.username}`);
+        toast.success(t('feed.toast.following', { username: creator.username }));
       }
     } catch (error) {
       console.error('Follow action failed:', error);
       // Revert optimistically
       setSuggestions(prev => prev.map(s => s.id === creatorId ? { ...s, isFollowing: creator.isFollowing } : s));
-      toast.error('Follow action failed.');
+      toast.error(t('feed.error.followFailed'));
     }
   };
 
@@ -198,10 +200,10 @@ export default function FeedPage() {
     const diffHours = Math.floor(diffMins / 60);
     const diffDays = Math.floor(diffHours / 24);
 
-    if (diffMins < 1) return 'Just now';
-    if (diffMins < 60) return `${diffMins}m ago`;
-    if (diffHours < 24) return `${diffHours}h ago`;
-    return `${diffDays}d ago`;
+    if (diffMins < 1) return t('feed.time.justNow');
+    if (diffMins < 60) return t('feed.time.minutesAgo', { count: String(diffMins) });
+    if (diffHours < 24) return t('feed.time.hoursAgo', { count: String(diffHours) });
+    return t('feed.time.daysAgo', { count: String(diffDays) });
   };
 
   const getInitials = (name: string) => {
@@ -214,9 +216,9 @@ export default function FeedPage() {
         <div>
           <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
             <Sparkles className="h-6 w-6 text-violet-400" />
-            Social Feed
+            {t('feed.title')}
           </h1>
-          <p className="text-zinc-400 text-sm">Discover latest releases and signature updates</p>
+          <p className="text-zinc-400 text-sm">{t('feed.subtitle')}</p>
         </div>
         <Button 
           onClick={handleRefresh}
@@ -225,7 +227,7 @@ export default function FeedPage() {
           className="border-white/10 bg-zinc-950/40 text-zinc-300 hover:text-white hover:bg-white/5 cursor-pointer"
         >
           <RefreshCw className="h-4 w-4 mr-1.5" />
-          Refresh
+          {t('feed.refresh')}
         </Button>
       </div>
 
@@ -235,13 +237,13 @@ export default function FeedPage() {
           {loading ? (
             <div className="flex flex-col items-center justify-center py-20">
               <Loader2 className="h-8 w-8 animate-spin text-violet-500 mb-2" />
-              <p className="text-zinc-400 text-sm">Loading your timeline...</p>
+              <p className="text-zinc-400 text-sm">{t('feed.loadingTimeline')}</p>
             </div>
           ) : feed.length === 0 ? (
             <div className="text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
               <Sparkles className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
-              <p className="text-zinc-400">Your feed is empty.</p>
-              <p className="text-zinc-500 text-xs mt-1">Follow artists or explore trending items to see updates!</p>
+              <p className="text-zinc-400">{t('feed.empty.title')}</p>
+              <p className="text-zinc-500 text-xs mt-1">{t('feed.empty.description')}</p>
             </div>
           ) : (
             <>
@@ -278,7 +280,7 @@ export default function FeedPage() {
                       />
                       {item.isSigned && (
                         <div className="absolute top-3 right-3 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                          <CheckCircle2 className="h-3.5 w-3.5 fill-green-500/10" /> Cryptographic Sign
+                          <CheckCircle2 className="h-3.5 w-3.5 fill-green-500/10" /> {t('feed.badge.cryptographicSign')}
                         </div>
                       )}
                     </div>
@@ -321,10 +323,10 @@ export default function FeedPage() {
                   >
                     {loadingMore ? (
                       <span className="flex items-center gap-1.5">
-                        <Loader2 className="h-4 w-4 animate-spin" /> Loading More...
+                        <Loader2 className="h-4 w-4 animate-spin" /> {t('feed.loadingMore')}
                       </span>
                     ) : (
-                      'Load More'
+                      t('feed.loadMore')
                     )}
                   </Button>
                 </div>
@@ -339,7 +341,7 @@ export default function FeedPage() {
             <CardHeader className="p-0 pb-3 mb-3 border-b border-white/5">
               <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
                 <Award className="h-4 w-4 text-amber-400" />
-                Featured Creators
+                {t('feed.featuredCreators')}
               </CardTitle>
             </CardHeader>
             <div className="space-y-3">
@@ -362,7 +364,7 @@ export default function FeedPage() {
                     onClick={() => toggleFollow(creator.id)}
                     className="h-7 text-xs border-white/10 hover:bg-white/5 cursor-pointer px-3 rounded-lg"
                   >
-                    {creator.isFollowing ? 'Following' : 'Follow'}
+                    {creator.isFollowing ? t('feed.following') : t('feed.follow')}
                   </Button>
                 </div>
               ))}

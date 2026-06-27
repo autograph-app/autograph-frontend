@@ -11,10 +11,12 @@ import { Textarea } from '@/components/ui/textarea';
 import { Button } from '@/components/ui/button';
 import { UploadCloud, Sparkles, Check, Info, Loader2 } from 'lucide-react';
 import { toast } from 'sonner';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 export default function ContentPage() {
   const router = useRouter();
   const { user } = useAuthStore();
+  const { t } = useI18n();
   const [title, setTitle] = useState('');
   const [description, setDescription] = useState('');
   const [category, setCategory] = useState('DigitalArts');
@@ -25,16 +27,16 @@ export default function ContentPage() {
   React.useEffect(() => {
     if (user && user.accountType === 1) {
       router.replace('/feed');
-      toast.error('Sanatçılar içerik paylaşamaz.');
+      toast.error(t('content.page.error.artistCannotPublish'));
     }
-  }, [user, router]);
+  }, [user, router, t]);
 
   const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
     const selectedFile = e.target.files?.[0];
     if (!selectedFile) return;
 
     if (!selectedFile.type.startsWith('image/')) {
-      toast.error('Only image files are supported.');
+      toast.error(t('content.page.error.imageOnly'));
       return;
     }
 
@@ -45,11 +47,11 @@ export default function ContentPage() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!file) {
-      toast.error('Please upload an image first.');
+      toast.error(t('content.page.error.uploadFirst'));
       return;
     }
     if (!title.trim()) {
-      toast.error('Please enter a title.');
+      toast.error(t('content.page.error.titleRequired'));
       return;
     }
 
@@ -71,7 +73,7 @@ export default function ContentPage() {
       });
 
       if (response.data?.success) {
-        toast.success('Artwork published successfully!');
+        toast.success(t('content.page.success.published'));
         setFile(null);
         setPreviewUrl(null);
         setTitle('');
@@ -79,11 +81,11 @@ export default function ContentPage() {
         setCategory('DigitalArts');
         router.push(user ? `/profile/${user.userName}` : '/feed');
       } else {
-        toast.error(response.data?.message || 'Failed to publish artwork.');
+        toast.error(response.data?.message || t('content.page.error.publishFailed'));
       }
     } catch (err: any) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'An error occurred during upload.');
+      toast.error(err.response?.data?.message || t('content.page.error.uploadFailed'));
     } finally {
       setIsUploading(false);
     }
@@ -94,9 +96,9 @@ export default function ContentPage() {
       <div>
         <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
           <Sparkles className="h-6 w-6 text-violet-400" />
-          Share Premium Content
+          {t('content.page.title')}
         </h1>
-        <p className="text-zinc-400 text-sm">Publish digital arts, photos, and collectibles for signature requests</p>
+        <p className="text-zinc-400 text-sm">{t('content.page.subtitle')}</p>
       </div>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
@@ -106,25 +108,21 @@ export default function ContentPage() {
             <div className="absolute inset-0 bg-black/80 backdrop-blur-sm z-50 flex flex-col items-center justify-center space-y-4 animate-in fade-in duration-300 select-none">
               <Loader2 className="h-10 w-10 animate-spin text-violet-500" />
               <div className="text-center space-y-1">
-                <p className="text-white font-bold text-sm">Publishing Artwork...</p>
-                <p className="text-zinc-400 text-xs max-w-xs px-4">
-                  Please wait while we optimize your image and run safety checks.
-                </p>
+                <p className="text-white font-bold text-sm">{t('content.page.uploading.title')}</p>
+                <p className="text-zinc-400 text-xs max-w-xs px-4">{t('content.page.uploading.subtitle')}</p>
               </div>
             </div>
           )}
           <CardHeader>
-            <CardTitle className="text-lg font-bold text-white">Upload New Artwork</CardTitle>
-            <CardDescription className="text-zinc-400 text-xs">
-              Upload standard high-resolution images to expose to your profile gallery.
-            </CardDescription>
+            <CardTitle className="text-lg font-bold text-white">{t('content.page.cardTitle')}</CardTitle>
+            <CardDescription className="text-zinc-400 text-xs">{t('content.page.cardDescription')}</CardDescription>
           </CardHeader>
           <CardContent>
             <form onSubmit={handleSubmit} className="space-y-5">
               {/* File Upload Area */}
               <div className="space-y-2">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-400 block">
-                  Artwork Image
+                  {t('content.page.artworkImage')}
                 </label>
                 <div 
                   onClick={() => !isUploading && document.getElementById('artwork-input')?.click()}
@@ -147,7 +145,7 @@ export default function ContentPage() {
                   {previewUrl ? (
                     <div className="space-y-4 text-center w-full max-w-sm">
                       <div className="aspect-video w-full rounded-lg overflow-hidden border border-white/10 relative mx-auto bg-zinc-900">
-                        <Image src={previewUrl} alt="Preview" className="object-cover w-full h-full" fill />
+                        <Image src={previewUrl} alt={t('content.page.previewAlt')} className="object-cover w-full h-full" fill />
                       </div>
                       <p className="text-xs text-zinc-400 truncate font-semibold">{file?.name}</p>
                       <Button 
@@ -162,14 +160,14 @@ export default function ContentPage() {
                           setPreviewUrl(null);
                         }}
                       >
-                        Remove
+                        {t('content.page.remove')}
                       </Button>
                     </div>
                   ) : (
                     <div className="text-center space-y-2 text-zinc-400">
                       <UploadCloud className="h-10 w-10 mx-auto text-zinc-500" />
-                      <p className="text-sm font-semibold text-white">Click or Drag Image to Upload</p>
-                      <p className="text-xs text-zinc-500">Supports PNG, JPG up to 10MB</p>
+                      <p className="text-sm font-semibold text-white">{t('content.page.clickOrDrag')}</p>
+                      <p className="text-xs text-zinc-500">{t('content.page.supports')}</p>
                     </div>
                   )}
                 </div>
@@ -178,12 +176,12 @@ export default function ContentPage() {
               {/* Title Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  Artwork Title
+                  {t('content.page.artworkTitle')}
                 </label>
                 <Input
                   value={title}
                   onChange={(e) => setTitle(e.target.value)}
-                  placeholder="Enter artwork title..."
+                  placeholder={t('content.page.titlePlaceholder')}
                   required
                   disabled={isUploading}
                   className="border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
@@ -193,12 +191,12 @@ export default function ContentPage() {
               {/* Description Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  Description / Caption
+                  {t('content.page.description')}
                 </label>
                 <Textarea
                   value={description}
                   onChange={(e) => setDescription(e.target.value)}
-                  placeholder="Describe your digital asset or canvas details..."
+                  placeholder={t('content.page.descriptionPlaceholder')}
                   disabled={isUploading}
                   className="min-h-[100px] border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
                 />
@@ -206,7 +204,7 @@ export default function ContentPage() {
 
               <div className="space-y-1.5">
                 <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                  Category
+                  {t('content.page.category')}
                 </label>
                 <select
                   value={category}
@@ -214,9 +212,9 @@ export default function ContentPage() {
                   disabled={isUploading}
                   className="h-10 w-full rounded-md border border-white/10 bg-black/40 px-3 text-sm text-white outline-none focus:border-violet-500"
                 >
-                  <option value="DigitalArts" className="bg-zinc-900">Digital Arts</option>
-                  <option value="SportsMemorabilia" className="bg-zinc-900">Sports Memorabilia</option>
-                  <option value="MusicCollectibles" className="bg-zinc-900">Music Collectibles</option>
+                  <option value="DigitalArts" className="bg-zinc-900">{t('content.page.category.digital')}</option>
+                  <option value="SportsMemorabilia" className="bg-zinc-900">{t('content.page.category.sports')}</option>
+                  <option value="MusicCollectibles" className="bg-zinc-900">{t('content.page.category.music')}</option>
                 </select>
               </div>
 
@@ -225,7 +223,7 @@ export default function ContentPage() {
                 disabled={isUploading || !file}
                 className="w-full h-11 bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white font-semibold rounded-lg shadow-lg hover:shadow-violet-600/20 active:scale-95 transition-all duration-150 cursor-pointer"
               >
-                {isUploading ? 'Publishing...' : 'Publish to Gallery'}
+                {isUploading ? t('content.page.publishing') : t('content.page.publish')}
               </Button>
             </form>
           </CardContent>
@@ -236,20 +234,20 @@ export default function ContentPage() {
           <Card className="border-white/10 bg-zinc-950/60 p-5 space-y-4">
             <h3 className="font-bold text-sm text-white flex items-center gap-2">
               <Info className="h-4 w-4 text-violet-400" />
-              Publishing Guidelines
+              {t('content.page.guidelines.title')}
             </h3>
             <ul className="space-y-3 text-xs text-zinc-400">
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>You must own the intellectual property rights to any digital media you publish.</span>
+                <span>{t('content.page.guidelines.ownership')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Recommended resolution is 1920x1080 or square 1:1 aspect ratio.</span>
+                <span>{t('content.page.guidelines.resolution')}</span>
               </li>
               <li className="flex items-start gap-2">
                 <Check className="h-4 w-4 text-emerald-500 shrink-0" />
-                <span>Artworks published by verified Artists become eligible for digital autograph sign requests.</span>
+                <span>{t('content.page.guidelines.eligibility')}</span>
               </li>
             </ul>
           </Card>

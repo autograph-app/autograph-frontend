@@ -3,6 +3,7 @@
 import React, { useEffect, useState } from 'react';
 import { useRouter } from 'next/navigation';
 import { useAuthStore } from '@/store/authStore';
+import { useI18n } from '@/components/providers/I18nProvider';
 import { Sparkles, Loader2, Mail, CheckCircle2, ArrowRight, Shield, Heart, Fingerprint } from 'lucide-react';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -11,6 +12,7 @@ import Link from 'next/link';
 
 export default function RootPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const token = useAuthStore((state) => state.token);
   const [mounted, setMounted] = useState(false);
   const [email, setEmail] = useState('');
@@ -34,7 +36,7 @@ export default function RootPage() {
   const handleJoinWaitlist = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!email || !email.includes('@')) {
-      toast.error('Lütfen geçerli bir e-posta adresi girin.');
+      toast.error(t('landing.waitlist.error.invalidEmail'));
       return;
     }
 
@@ -44,7 +46,7 @@ export default function RootPage() {
     setSubmitLoading(false);
     setWaitlistNumber(Math.floor(Math.random() * 500) + 1240);
     setIsSubmitted(true);
-    toast.success('Başarıyla waitlist sırasına alındınız!');
+    toast.success(t('landing.waitlist.toast.success'));
   };
 
   if (!mounted || token) {
@@ -75,12 +77,12 @@ export default function RootPage() {
         <div className="flex items-center gap-2 sm:gap-4">
           <Link href="/login">
             <Button variant="ghost" className="text-xs sm:text-sm font-semibold text-zinc-400 hover:text-white cursor-pointer px-2 sm:px-4 h-8 sm:h-10 active:scale-95 transition-all duration-150">
-              Giriş Yap
+              {t('landing.header.signIn')}
             </Button>
           </Link>
           <Link href="/register">
             <Button className="bg-gradient-to-r from-violet-600 to-fuchsia-600 hover:from-violet-500 hover:to-fuchsia-500 text-white text-xs sm:text-sm font-semibold px-3 py-1.5 sm:px-5 sm:py-2.5 h-8 sm:h-11 rounded-lg sm:rounded-xl cursor-pointer shadow-lg shadow-violet-500/10 active:scale-95 transition-all duration-150">
-              Kayıt Ol
+              {t('landing.header.signUp')}
             </Button>
           </Link>
         </div>
@@ -92,17 +94,17 @@ export default function RootPage() {
         {/* Banner Tag */}
         <div className="inline-flex items-center gap-2 px-3.5 py-1.5 rounded-full bg-violet-500/10 border border-violet-500/20 text-xs font-semibold text-violet-400">
           <Sparkles className="h-3.5 w-3.5" />
-          <span>AUTOGRAPH v2.0 Çok Yakında</span>
+          <span>{t('landing.hero.badge')}</span>
         </div>
 
         {/* Hero Copy */}
         <div className="max-w-3xl space-y-4">
           <h1 className="text-4xl sm:text-6xl font-extrabold tracking-tight bg-gradient-to-r from-white via-zinc-200 to-zinc-500 bg-clip-text text-transparent leading-tight">
-            Dijital Eserlerinizi <br/>
-            <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">Kriptografik İmzalar</span> ile Sertifikalayın
+            {t('landing.hero.title.line1')} <br/>
+            <span className="bg-gradient-to-r from-violet-400 to-fuchsia-400 bg-clip-text text-transparent">{t('landing.hero.title.line2')}</span>
           </h1>
           <p className="text-zinc-400 text-base sm:text-xl max-w-2xl mx-auto leading-relaxed">
-            AUTOGRAPH, sanatçıların ve içerik üreticilerinin dijital koleksiyonlerini benzersiz, kırılamaz kriptografik imzalar ile damgalayıp hayranlarıyla güven içinde paylaşmasını sağlar.
+            {t('landing.hero.description')}
           </p>
         </div>
 
@@ -114,12 +116,12 @@ export default function RootPage() {
               <div className="mx-auto flex h-12 w-12 items-center justify-center rounded-full bg-green-500/10 border border-green-500/30 text-green-400">
                 <CheckCircle2 className="h-6 w-6" />
               </div>
-              <h3 className="text-lg font-bold text-white">Sıraya Alındınız!</h3>
+              <h3 className="text-lg font-bold text-white">{t('landing.waitlist.success.title')}</h3>
               <p className="text-zinc-400 text-xs leading-relaxed max-w-xs mx-auto">
-                Erken erişim sıranız başarıyla onaylandı. Platform yayına girdiği an öncelikli olarak bilgilendirileceksiniz.
+                {t('landing.waitlist.success.description')}
               </p>
               <div className="inline-block px-4 py-1.5 rounded-full bg-white/5 border border-white/5 text-[11px] font-mono text-violet-400">
-                Sıranız: #{waitlistNumber}
+                {t('landing.waitlist.position', { number: String(waitlistNumber ?? 0) })}
               </div>
             </div>
           ) : (
@@ -127,10 +129,10 @@ export default function RootPage() {
               <div className="text-left space-y-1">
                 <h3 className="text-md font-bold text-white flex items-center gap-2">
                   <Mail className="h-4 w-4 text-violet-400" />
-                  Erken Erişim Sırasına Katılın
+                  {t('landing.waitlist.title')}
                 </h3>
                 <p className="text-zinc-400 text-xs">
-                  Sınırlı kontenjana sahip beta sürümünde yerinizi ayırtın.
+                  {t('landing.waitlist.description')}
                 </p>
               </div>
 
@@ -139,7 +141,7 @@ export default function RootPage() {
                   type="email"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
-                  placeholder="E-posta adresiniz"
+                  placeholder={t('landing.waitlist.placeholder')}
                   required
                   className="h-12 bg-black/40 border-white/10 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30 rounded-xl flex-1"
                 />
@@ -152,13 +154,13 @@ export default function RootPage() {
                     <Loader2 className="h-4 w-4 animate-spin" />
                   ) : (
                     <>
-                      Yer Ayırt <ArrowRight className="h-4 w-4" />
+                      {t('landing.waitlist.submit')} <ArrowRight className="h-4 w-4" />
                     </>
                   )}
                 </Button>
               </div>
               <p className="text-[10px] text-zinc-500 text-left">
-                * Gizliliğe önem veriyoruz. Asla spam gönderilmez.
+                * {t('landing.waitlist.notice')}
               </p>
             </form>
           )}
@@ -170,27 +172,27 @@ export default function RootPage() {
             <div className="h-10 w-10 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
               <Shield className="h-5 w-5" />
             </div>
-            <h4 className="font-bold text-sm text-white">Güvenli Kriptografi</h4>
+            <h4 className="font-bold text-sm text-white">{t('landing.features.security.title')}</h4>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Her dijital imza, değiştirilemez hash algoritmalarıyla imzalanır ve doğrulanabilir ownership kanıtı sağlar.
+              {t('landing.features.security.description')}
             </p>
           </div>
           <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 flex flex-col items-center text-center space-y-3 hover:border-white/10 transition-colors">
             <div className="h-10 w-10 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
               <Heart className="h-5 w-5" />
             </div>
-            <h4 className="font-bold text-sm text-white">Sanatçı & Hayran Bağı</h4>
+            <h4 className="font-bold text-sm text-white">{t('landing.features.community.title')}</h4>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Hayranlar, sevdikleri sanatçılardan doğrudan dijital imza isteyebilir, özel koleksiyon oluşturabilirler.
+              {t('landing.features.community.description')}
             </p>
           </div>
           <div className="bg-zinc-950/40 border border-white/5 rounded-2xl p-6 flex flex-col items-center text-center space-y-3 hover:border-white/10 transition-colors">
             <div className="h-10 w-10 rounded-xl bg-violet-500/10 border border-violet-500/20 text-violet-400 flex items-center justify-center">
               <Fingerprint className="h-5 w-5" />
             </div>
-            <h4 className="font-bold text-sm text-white">Özel PRO Avantajları</h4>
+            <h4 className="font-bold text-sm text-white">{t('landing.features.premium.title')}</h4>
             <p className="text-xs text-zinc-400 leading-relaxed">
-              Premium aboneler sınırsız istek, özel profil rozeti, BackOffice analizleri ve daha birçok ayrıcalığa erişir.
+              {t('landing.features.premium.description')}
             </p>
           </div>
         </div>
@@ -199,7 +201,7 @@ export default function RootPage() {
 
       {/* Simple Footer */}
       <footer className="w-full text-center py-6 text-xs text-zinc-600 border-t border-white/5 mt-auto relative z-10">
-        &copy; 2026 AUTOGRAPH. Tüm Hakları Saklıdır.
+        &copy; 2026 AUTOGRAPH. {t('landing.footer')}
       </footer>
     </div>
   );

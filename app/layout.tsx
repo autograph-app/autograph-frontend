@@ -2,6 +2,7 @@ import type { Metadata } from "next";
 import { Plus_Jakarta_Sans, Geist_Mono } from "next/font/google";
 import "./globals.css";
 import { ThemeProvider } from "@/components/providers/ThemeProvider";
+import { I18nProvider } from "@/components/providers/I18nProvider";
 
 const jakartaSans = Plus_Jakarta_Sans({
   variable: "--font-sans",
@@ -35,7 +36,7 @@ export default function RootLayout({
           defaultTheme="dark"
           themes={["dark", "cyberpunk", "emerald", "ocean", "rose-gold"]}
         >
-          {children}
+          <I18nProvider>{children}</I18nProvider>
         </ThemeProvider>
       </body>
     </html>

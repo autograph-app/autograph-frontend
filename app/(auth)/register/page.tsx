@@ -10,6 +10,7 @@ import { Eye, EyeOff, Loader2, Sparkles, User, Mail, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 import { api } from '@/lib/api';
+import { useI18n } from '@/components/providers/I18nProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -30,6 +31,7 @@ type RegisterFormValues = z.infer<typeof registerSchema>;
 
 export default function RegisterPage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -56,15 +58,15 @@ export default function RegisterPage() {
       });
 
       if (response.data?.success) {
-        toast.success('Registration successful! Please sign in with your new account.');
+        toast.success(t('auth.registerSuccess'));
         router.push('/login');
       } else {
-        toast.error(response.data?.message || 'Registration failed.');
+        toast.error(response.data?.message || t('auth.registerError'));
       }
     } catch (error: unknown) {
       console.error(error);
       const err = error as { response?: { data?: { message?: string } } };
-      const errMsg = err.response?.data?.message || 'Registration failed. Username or email might already be in use.';
+      const errMsg = err.response?.data?.message || t('auth.registerFailed');
       toast.error(errMsg);
     } finally {
       setIsLoading(false);
@@ -91,24 +93,22 @@ export default function RegisterPage() {
             AUTOGRAPH
           </h2>
           <p className="mt-2 text-sm text-zinc-400">
-            Create an account to join our digital community
+            {t('auth.registerSubtitle')}
           </p>
         </Link>
 
         {/* Glassmorphic Register Card */}
         <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-xl font-bold text-white">Create Account</CardTitle>
-            <CardDescription className="text-zinc-400">
-              Sign up today to discover and support your favorite artists
-            </CardDescription>
+            <CardTitle className="text-xl font-bold text-white">{t('auth.createTitle')}</CardTitle>
+            <CardDescription className="text-zinc-400">{t('auth.createDescription')}</CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
             <CardContent className="space-y-4">
               {/* Username Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                  Username
+                  {t('auth.username')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-zinc-500">
@@ -132,7 +132,7 @@ export default function RegisterPage() {
               {/* Email Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                  Email Address
+                  {t('auth.email')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-zinc-500">
@@ -156,7 +156,7 @@ export default function RegisterPage() {
               {/* Password Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                  Password
+                  {t('auth.password')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-zinc-500">
@@ -193,20 +193,20 @@ export default function RegisterPage() {
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Creating Account...
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t('auth.creating')}
                   </span>
                 ) : (
-                  'Create Account'
+                  t('auth.createButton')
                 )}
               </Button>
 
               <div className="text-center text-xs text-zinc-500">
-                Already have an account?{' '}
+                {t('auth.alreadyAccount')}{' '}
                 <Link
                   href="/login"
                   className="font-semibold text-violet-400 hover:text-violet-300 hover:underline transition-colors"
                 >
-                  Sign in instead
+                  {t('auth.signInInstead')}
                 </Link>
               </div>
             </CardFooter>

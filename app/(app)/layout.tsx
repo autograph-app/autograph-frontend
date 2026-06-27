@@ -5,6 +5,7 @@ import { useRouter, usePathname } from 'next/navigation';
 import Link from 'next/link';
 import { useAuthStore } from '@/store/authStore';
 import { useNotificationStore } from '@/store/notificationStore';
+import { useI18n } from '@/components/providers/I18nProvider';
 import { HubConnectionBuilder, HttpTransportType } from '@microsoft/signalr';
 import { toast } from 'sonner';
 import { 
@@ -30,6 +31,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   const router = useRouter();
   const pathname = usePathname();
   const { token, user } = useAuthStore();
+  const { t } = useI18n();
   const { unreadCount, fetchNotifications, addNotification } = useNotificationStore();
   const [mounted, setMounted] = useState(false);
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -100,22 +102,22 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
   }
 
   const navItems = [
-    { name: 'Feed', href: '/feed', icon: Home },
-    { name: 'Explore', href: '/explore', icon: Compass },
-    ...(user && user.accountType === 1 ? [{ name: 'Artist Inbox', href: '/inbox', icon: Inbox }] : []),
-    { name: 'Notifications', href: '/notifications', icon: Bell },
-    ...(user && user.accountType !== 1 ? [{ name: 'Share Content', href: '/content', icon: PlusSquare }] : []),
-    { name: 'My Profile', href: user ? `/profile/${user.userName}` : '/profile/me', icon: UserIcon },
-    { name: 'Settings', href: '/settings', icon: Settings },
-    ...(user && user.accountType !== 1 ? [{ name: 'Pricing', href: '/pricing', icon: Sparkles }] : []),
+    { id: 'feed', label: t('nav.feed'), href: '/feed', icon: Home },
+    { id: 'explore', label: t('nav.explore'), href: '/explore', icon: Compass },
+    ...(user && user.accountType === 1 ? [{ id: 'artistInbox', label: t('nav.artistInbox'), href: '/inbox', icon: Inbox }] : []),
+    { id: 'notifications', label: t('nav.notifications'), href: '/notifications', icon: Bell },
+    ...(user && user.accountType !== 1 ? [{ id: 'shareContent', label: t('nav.shareContent'), href: '/content', icon: PlusSquare }] : []),
+    { id: 'myProfile', label: t('nav.myProfile'), href: user ? `/profile/${user.userName}` : '/profile/me', icon: UserIcon },
+    { id: 'settings', label: t('nav.settings'), href: '/settings', icon: Settings },
+    ...(user && user.accountType !== 1 ? [{ id: 'pricing', label: t('nav.pricing'), href: '/pricing', icon: Sparkles }] : []),
   ];
 
   const bottomNavItems = [
-    { name: 'Feed', href: '/feed', icon: Home },
-    { name: 'Explore', href: '/explore', icon: Compass },
-    ...(user && user.accountType === 1 ? [{ name: 'Inbox', href: '/inbox', icon: Inbox }] : []),
-    ...(user && user.accountType !== 1 ? [{ name: 'Share Content', href: '/content', icon: PlusSquare }] : []),
-    { name: 'My Profile', href: user ? `/profile/${user.userName}` : '/profile/me', icon: UserIcon },
+    { id: 'feed', label: t('nav.feed'), href: '/feed', icon: Home },
+    { id: 'explore', label: t('nav.explore'), href: '/explore', icon: Compass },
+    ...(user && user.accountType === 1 ? [{ id: 'inbox', label: t('nav.artistInbox'), href: '/inbox', icon: Inbox }] : []),
+    ...(user && user.accountType !== 1 ? [{ id: 'shareContent', label: t('nav.shareContent'), href: '/content', icon: PlusSquare }] : []),
+    { id: 'myProfile', label: t('nav.myProfile'), href: user ? `/profile/${user.userName}` : '/profile/me', icon: UserIcon },
   ];
 
   const handleLogout = () => {
@@ -158,10 +160,10 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <nav className="flex-1 space-y-1.5">
           {navItems.map((item) => {
             const Icon = item.icon;
-            const isActive = pathname === item.href || (item.name === 'My Profile' && pathname.startsWith('/profile'));
+            const isActive = pathname === item.href || (item.id === 'myProfile' && pathname.startsWith('/profile'));
             return (
               <Link
-                key={item.name}
+                key={item.id}
                 href={item.href}
                 className={`flex items-center gap-3 px-4 py-3 rounded-xl text-sm font-medium transition-all duration-300 active:scale-[0.98] relative group overflow-hidden ${
                   isActive 
@@ -170,13 +172,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                 }`}
               >
                 <Icon className={`h-5 w-5 transition-transform duration-300 group-hover:scale-110 ${isActive ? 'text-violet-400' : ''}`} />
-                {item.name}
-                {item.name === 'Notifications' && unreadCount > 0 && (
+                {item.label}
+                {item.id === 'notifications' && unreadCount > 0 && (
                   <span className="ml-auto bg-violet-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                     {unreadCount}
                   </span>
                 )}
-                {isActive && item.name !== 'Notifications' && (
+                {isActive && item.id !== 'notifications' && (
                   <span className="absolute right-3 h-1.5 w-1.5 rounded-full bg-violet-400 animate-pulse" />
                 )}
               </Link>
@@ -209,7 +211,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   )}
                 </div>
                 <p className="text-xs text-zinc-400 truncate mt-1">
-                  {user.accountType === 1 ? 'Artist' : 'Fan'}
+                  {user.accountType === 1 ? t('profile.role.artist') : t('profile.role.fan')}
                 </p>
               </div>
             </Link>
@@ -278,13 +280,13 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
         <div className="md:hidden fixed inset-0 top-[65px] bg-black/95 z-30 flex flex-col p-6 backdrop-blur-lg border-t border-white/5 animate-in fade-in slide-in-from-top-4 duration-300">
           <nav className="space-y-2 flex-1">
             {navItems
-              .filter((item) => !['Feed', 'Explore', 'Share Content', 'My Profile', 'Artist Inbox', 'Inbox'].includes(item.name))
+              .filter((item) => !['feed', 'explore', 'shareContent', 'myProfile', 'artistInbox', 'inbox'].includes(item.id))
               .map((item) => {
                 const Icon = item.icon;
-                const isActive = pathname === item.href || (item.name === 'My Profile' && pathname.startsWith('/profile'));
+                const isActive = pathname === item.href || (item.id === 'myProfile' && pathname.startsWith('/profile'));
                 return (
                   <Link
-                    key={item.name}
+                    key={item.id}
                     href={item.href}
                     onClick={() => setIsMobileMenuOpen(false)}
                     className={`flex items-center justify-between px-4 py-3.5 rounded-xl text-base font-semibold active:scale-[0.98] transition-all ${
@@ -295,8 +297,8 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
                   >
                     <span className="flex items-center gap-3">
                       <Icon className="h-5 w-5" />
-                      {item.name}
-                      {item.name === 'Notifications' && unreadCount > 0 && (
+                      {item.label}
+                      {item.id === 'notifications' && unreadCount > 0 && (
                         <span className="bg-violet-600 text-white text-[10px] font-bold px-2 py-0.5 rounded-full">
                           {unreadCount}
                         </span>
@@ -317,7 +319,7 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
             >
               <span className="flex items-center gap-3">
                 <LogOut className="h-5 w-5" />
-                Sign Out
+                {t('layout.signOut')}
               </span>
               <ChevronRight className="h-4 w-4 opacity-50" />
             </button>
@@ -336,19 +338,19 @@ export default function AppLayout({ children }: { children: React.ReactNode }) {
       <div className="md:hidden fixed bottom-0 left-0 right-0 z-30 bg-zinc-950/95 backdrop-blur-md border-t border-white/10 px-6 py-2 flex items-center justify-around">
         {bottomNavItems.map((item) => {
           const Icon = item.icon;
-          const isActive = pathname === item.href || (item.name === 'My Profile' && pathname.startsWith('/profile'));
+          const isActive = pathname === item.href || (item.id === 'myProfile' && pathname.startsWith('/profile'));
           return (
             <Link
-              key={item.name}
+              key={item.id}
               href={item.href}
               onClick={() => setIsMobileMenuOpen(false)}
               className={`flex flex-col items-center justify-center py-1 px-3 transition-all active:scale-95 duration-200 ${
                 isActive ? 'text-violet-500' : 'text-zinc-400 hover:text-white'
               }`}
-              id={`mobile-bottom-nav-${item.name.toLowerCase().replace(/\s+/g, '-')}`}
+              id={`mobile-bottom-nav-${item.id}`}
             >
               <Icon className="h-5.5 w-5.5 mb-0.5" />
-              <span className="text-[9px] font-semibold tracking-wide">{item.name}</span>
+              <span className="text-[9px] font-semibold tracking-wide">{item.label}</span>
             </Link>
           );
         })}

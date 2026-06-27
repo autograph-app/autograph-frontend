@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Search, Compass, Sparkles, Flame, Star, Loader2, Heart, CheckCircle2, X } from 'lucide-react';
 import { toast } from 'sonner';
 import { api } from '@/lib/api';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 interface FeedItem {
   id: string;
@@ -46,6 +47,7 @@ interface ActiveExperience {
 
 export default function ExplorePage() {
   const router = useRouter();
+  const { t } = useI18n();
   const [searchQuery, setSearchQuery] = useState('');
   const [searchResults, setSearchResults] = useState<UserSearchResult[]>([]);
   const [searchLoading, setSearchLoading] = useState(false);
@@ -68,12 +70,12 @@ export default function ExplorePage() {
       if (response.data?.success) {
         setSearchResults(response.data.data);
         if (response.data.data.length === 0) {
-          toast.info('No profiles found matching your query.');
+          toast.info(t('explore.noProfiles'));
         }
       }
     } catch (err) {
       console.error('Search failed:', err);
-      toast.error('Search failed. Please try again.');
+      toast.error(t('explore.error.searchFailed'));
     } finally {
       setSearchLoading(false);
     }
@@ -108,12 +110,12 @@ export default function ExplorePage() {
       }
     } catch (error) {
       console.error('Failed to fetch explore feed:', error);
-      toast.error('Could not load trending content.');
+      toast.error(t('explore.error.loadTrending'));
     } finally {
       setLoading(false);
       setLoadingMore(false);
     }
-  }, []);
+  }, [t]);
 
   useEffect(() => {
     const handle = requestAnimationFrame(() => {
@@ -192,7 +194,7 @@ export default function ExplorePage() {
           return item;
         })
       );
-      toast.error('Action failed.');
+      toast.error(t('explore.error.actionFailed'));
     }
   };
 
@@ -216,7 +218,7 @@ export default function ExplorePage() {
   const openCategoryExperience = (category: CategoryKey, title: string) => {
     const items = categorizedItems[category];
     if (items.length === 0) {
-      toast.info('This category has no content yet.');
+      toast.info(t('explore.category.empty'));
       return;
     }
 
@@ -229,13 +231,13 @@ export default function ExplorePage() {
 
   const openTrendingExperience = (startItemId?: string) => {
     if (trendingItems.length === 0) {
-      toast.info('Trending feed is empty.');
+      toast.info(t('explore.trending.empty'));
       return;
     }
 
     setActiveExperience({
       mode: 'trending',
-      title: 'Trending Artworks',
+      title: t('explore.trendingTitle'),
       items: trendingItems,
       startItemId,
     });
@@ -248,24 +250,24 @@ export default function ExplorePage() {
   const trendingCategories = [
     {
       key: 'digital' as CategoryKey,
-      title: 'Digital Arts',
+      title: t('explore.category.digital'),
       icon: Sparkles,
       color: 'text-violet-400 bg-violet-500/10',
-      count: `${categorizedItems.digital.length} items`
+      count: t('explore.category.items', { count: String(categorizedItems.digital.length) })
     },
     {
       key: 'sports' as CategoryKey,
-      title: 'Sports Memorabilia',
+      title: t('explore.category.sports'),
       icon: Flame,
       color: 'text-fuchsia-400 bg-fuchsia-500/10',
-      count: `${categorizedItems.sports.length} items`
+      count: t('explore.category.items', { count: String(categorizedItems.sports.length) })
     },
     {
       key: 'music' as CategoryKey,
-      title: 'Music Collectibles',
+      title: t('explore.category.music'),
       icon: Star,
       color: 'text-amber-400 bg-amber-500/10',
-      count: `${categorizedItems.music.length} items`
+      count: t('explore.category.items', { count: String(categorizedItems.music.length) })
     },
   ];
 
@@ -274,9 +276,9 @@ export default function ExplorePage() {
       <div>
         <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
           <Compass className="h-6 w-6 text-violet-400" />
-          Explore Autograph
+          {t('explore.title')}
         </h1>
-        <p className="text-zinc-400 text-sm">Find verified creators and search profiles by User GUID</p>
+        <p className="text-zinc-400 text-sm">{t('explore.subtitle')}</p>
       </div>
 
       {/* Lookup Card */}
@@ -284,27 +286,27 @@ export default function ExplorePage() {
         <CardHeader>
           <CardTitle className="text-sm font-bold text-white flex items-center gap-2">
             <Search className="h-4 w-4 text-violet-400" />
-            Search Profiles
+            {t('explore.searchProfiles')}
           </CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <form onSubmit={handleSearch} className="flex gap-2 max-w-xl">
             <Input
               type="text"
-              placeholder="Search by name or username..."
+              placeholder={t('explore.searchPlaceholder')}
               value={searchQuery}
               onChange={(e) => setSearchQuery(e.target.value)}
               className="flex-1 h-11 border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
             />
             <Button type="submit" disabled={searchLoading} className="h-11 px-6 bg-violet-600 hover:bg-violet-500 cursor-pointer">
-              {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : 'Search'}
+              {searchLoading ? <Loader2 className="h-4 w-4 animate-spin" /> : t('explore.searchButton')}
             </Button>
           </form>
 
           {/* Search Results */}
           {searchResults.length > 0 && (
             <div className="border-t border-white/5 pt-4 space-y-3 max-w-xl">
-              <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">Search Results</h4>
+              <h4 className="text-xs font-semibold text-zinc-400 uppercase tracking-wider">{t('explore.searchResults')}</h4>
               <div className="space-y-2">
                 {searchResults.map((user) => (
                   <div 
@@ -336,7 +338,7 @@ export default function ExplorePage() {
                       onClick={() => router.push(`/profile/${user.id}`)}
                       className="h-8 bg-zinc-800 hover:bg-zinc-700 text-white text-xs border border-white/10 rounded-lg cursor-pointer"
                     >
-                      View Profile
+                      {t('explore.viewProfile')}
                     </Button>
                   </div>
                 ))}
@@ -348,8 +350,8 @@ export default function ExplorePage() {
 
       {/* Trending categories section */}
       <div className="space-y-4">
-        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">Trending Categories</h3>
-        <p className="text-xs text-zinc-500">Tap any category to enter vertical swipe mode and scroll through only that category.</p>
+        <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400">{t('explore.trendingCategories')}</h3>
+        <p className="text-xs text-zinc-500">{t('explore.trendingCategoriesHint')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-3 gap-4">
           {trendingCategories.map((cat, i) => {
             const Icon = cat.icon;
@@ -379,26 +381,26 @@ export default function ExplorePage() {
         <div className="flex items-center justify-between gap-3">
           <h3 className="text-sm font-bold uppercase tracking-wider text-zinc-400 flex items-center gap-2">
             <Flame className="h-4 w-4 text-fuchsia-400" />
-            Trending Artworks
+            {t('explore.trendingTitle')}
           </h3>
           <Button
             onClick={() => openTrendingExperience()}
             className="h-8 px-3 text-xs border border-white/10 bg-zinc-900/70 hover:bg-zinc-800 cursor-pointer"
           >
-            Vertical Browse
+            {t('explore.verticalBrowse')}
           </Button>
         </div>
-        <p className="text-xs text-zinc-500">Smaller thumbnails for denser discovery. Tap any item to open full-screen vertical flow.</p>
+        <p className="text-xs text-zinc-500">{t('explore.trendingHint')}</p>
         
         {loading ? (
           <div className="flex flex-col items-center justify-center py-20">
             <Loader2 className="h-8 w-8 animate-spin text-violet-500 mb-2" />
-            <p className="text-zinc-400 text-sm">Loading trending works...</p>
+            <p className="text-zinc-400 text-sm">{t('explore.loadingTrending')}</p>
           </div>
         ) : trendingItems.length === 0 ? (
           <div className="text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
             <Sparkles className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
-            <p className="text-zinc-400 text-sm">No trending artworks discovered yet.</p>
+            <p className="text-zinc-400 text-sm">{t('explore.noTrending')}</p>
           </div>
         ) : (
           <div className="space-y-6">
@@ -419,7 +421,7 @@ export default function ExplorePage() {
                     
                     {item.isSigned && (
                       <div className="absolute top-2 right-2 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[10px] font-bold px-2 py-0.5 rounded-full flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> Signed
+                        <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> {t('explore.signed')}
                       </div>
                     )}
 
@@ -430,7 +432,7 @@ export default function ExplorePage() {
                   </div>
                   <div className="px-3 py-2 flex items-center justify-between border-t border-white/5 bg-zinc-950/90 text-[11px]">
                     <span className="text-zinc-500 font-semibold uppercase tracking-wider text-[9px]">
-                      {item.signatureCount} sig
+                      {t('explore.signatureCount', { count: String(item.signatureCount) })}
                     </span>
                     <button 
                       onClick={(e) => toggleLike(item.id, e)}
@@ -455,10 +457,10 @@ export default function ExplorePage() {
                 >
                   {loadingMore ? (
                     <span className="flex items-center gap-1.5">
-                      <Loader2 className="h-4 w-4 animate-spin" /> Loading...
+                      <Loader2 className="h-4 w-4 animate-spin" /> {t('explore.loadingMore')}
                     </span>
                   ) : (
-                    'Load More'
+                    t('explore.loadMore')
                   )}
                 </Button>
               </div>
@@ -473,14 +475,14 @@ export default function ExplorePage() {
             <div className="mb-3 flex items-center justify-between rounded-xl border border-white/10 bg-zinc-950/80 p-3">
               <div>
                 <p className="text-[11px] uppercase tracking-[0.2em] text-zinc-500">
-                  {activeExperience.mode === 'category' ? 'Category Flow' : 'Trending Flow'}
+                  {activeExperience.mode === 'category' ? t('explore.categoryFlow') : t('explore.trendingFlow')}
                 </p>
                 <h4 className="text-sm font-bold text-white">{activeExperience.title}</h4>
               </div>
               <Button
                 onClick={closeExperience}
                 className="h-9 w-9 p-0 border border-white/10 bg-zinc-900/70 hover:bg-zinc-800 cursor-pointer"
-                aria-label="Close vertical browser"
+                aria-label={t('explore.closeBrowser')}
               >
                 <X className="h-4 w-4" />
               </Button>
@@ -502,13 +504,13 @@ export default function ExplorePage() {
                     <div className="absolute inset-0 bg-gradient-to-t from-black via-black/30 to-transparent" />
                     {item.isSigned && (
                       <div className="absolute right-4 top-4 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[10px] font-bold px-2.5 py-1 rounded-full flex items-center gap-1">
-                        <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> Signed
+                        <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> {t('explore.signed')}
                       </div>
                     )}
 
                     <div className="absolute inset-x-0 bottom-0 p-4 sm:p-5">
                       <h3 className="text-xl sm:text-2xl font-extrabold text-white">{item.title}</h3>
-                      <p className="mt-1 text-sm text-zinc-300">by @{item.creatorUsername}</p>
+                      <p className="mt-1 text-sm text-zinc-300">{t('explore.by', { username: item.creatorUsername })}</p>
                       {item.description && (
                         <p className="mt-3 line-clamp-3 text-sm text-zinc-300/90">{item.description}</p>
                       )}
@@ -517,9 +519,9 @@ export default function ExplorePage() {
 
                   <div className="flex items-center justify-between gap-3 p-4 border-t border-white/5">
                     <div className="flex items-center gap-2 text-xs text-zinc-400">
-                      <span>{item.signatureCount} signatures</span>
+                      <span>{t('explore.signatures', { count: String(item.signatureCount) })}</span>
                       <span className="text-zinc-700">|</span>
-                      <span>{item.likeCount} likes</span>
+                      <span>{t('explore.likes', { count: String(item.likeCount) })}</span>
                     </div>
                     <div className="flex items-center gap-2">
                       <Button
@@ -531,13 +533,13 @@ export default function ExplorePage() {
                         }`}
                       >
                         <Heart className={`h-3.5 w-3.5 ${item.isLikedByCurrentUser ? 'fill-rose-500' : ''}`} />
-                        Like
+                        {t('explore.like')}
                       </Button>
                       <Button
                         onClick={() => router.push(`/contents/${item.id}`)}
                         className="h-9 px-3 text-xs border border-violet-500/40 bg-violet-500/20 text-violet-100 hover:bg-violet-500/30 cursor-pointer"
                       >
-                        Open Detail
+                          {t('explore.openDetail')}
                       </Button>
                     </div>
                   </div>

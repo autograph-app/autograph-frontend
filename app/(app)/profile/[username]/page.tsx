@@ -43,6 +43,7 @@ import { Input } from '@/components/ui/input';
 import { Textarea } from '@/components/ui/textarea';
 import { Tabs, TabsContent, TabsList, TabsTrigger } from '@/components/ui/tabs';
 import LogoutConfirmDialog from '@/components/auth/LogoutConfirmDialog';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 interface ContentItem {
   id: string;
@@ -87,6 +88,7 @@ interface SignatureRequestDto {
 export default function ProfilePage() {
   const params = useParams();
   const router = useRouter();
+  const { t } = useI18n();
   const { user: currentUser, updateUser } = useAuthStore();
   const [profile, setProfile] = useState<ProfileData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -262,19 +264,19 @@ export default function ProfilePage() {
 
       toast.dismiss();
       if (response.data?.success) {
-        toast.success('Avatar uploaded successfully!');
+        toast.success(t('profile.toast.avatarUploaded'));
         setProfile(response.data.data);
         if (response.data.data) {
           updateUser({ avatarUrl: response.data.data.avatarUrl || undefined });
         }
       } else {
-        toast.error('Failed to upload avatar.');
+        toast.error(t('profile.toast.avatarUploadFailed'));
       }
     } catch (error: unknown) {
       toast.dismiss();
       console.error(error);
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Failed to upload avatar.');
+      toast.error(err.response?.data?.message || t('profile.toast.avatarUploadFailed'));
     } finally {
       setUploadingAvatar(false);
     }
@@ -302,10 +304,10 @@ export default function ProfilePage() {
     try {
       if (wasFollowing) {
         await api.delete(`/users/${profile.id}/follow`);
-        toast.success(`Unfollowed @${profile.userName}`);
+        toast.success(t('feed.toast.unfollowed', { username: profile.userName }));
       } else {
         await api.post(`/users/${profile.id}/follow`);
-        toast.success(`Following @${profile.userName}`);
+        toast.success(t('feed.toast.following', { username: profile.userName }));
       }
     } catch (error: unknown) {
       console.error('Follow action failed:', error);
@@ -318,7 +320,7 @@ export default function ProfilePage() {
           followersCount: originalFollowersCount
         };
       });
-      toast.error('Follow action failed.');
+      toast.error(t('profile.toast.followFailed'));
     } finally {
       setFollowingLoading(false);
     }
@@ -326,22 +328,22 @@ export default function ProfilePage() {
 
   const handleHideSignedContent = async (e: React.MouseEvent, contentId: string) => {
     e.stopPropagation();
-    if (!confirm('Are you sure you want to hide this signed content from your profile gallery?')) {
+    if (!confirm(t('profile.request.hideConfirm'))) {
       return;
     }
 
     try {
       const response = await api.post(`/signature-requests/contents/${contentId}/hide`);
       if (response.data?.success) {
-        toast.success('Signed content hidden from your profile.');
+        toast.success(t('profile.request.hidden'));
         fetchProfile();
       } else {
-        toast.error('Failed to hide content.');
+        toast.error(t('profile.toast.contentHideFailed'));
       }
     } catch (error: unknown) {
       console.error('Hide signed content failed:', error);
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Failed to hide content.');
+      toast.error(err.response?.data?.message || t('profile.toast.contentHideFailed'));
     }
   };
 
@@ -350,16 +352,16 @@ export default function ProfilePage() {
     try {
       const response = await api.delete('/contents');
       if (response.data?.success) {
-        toast.success(response.data?.message || 'All contents deleted successfully.');
+        toast.success(response.data?.message || t('profile.toast.contentsDeleted'));
         setIsDeleteAllConfirmOpen(false);
         fetchProfile();
       } else {
-        toast.error('Failed to delete contents.');
+        toast.error(t('profile.toast.deleteContentsFailed'));
       }
     } catch (error: unknown) {
       console.error('Delete all contents failed:', error);
       const err = error as { response?: { data?: { message?: string } } };
-      toast.error(err.response?.data?.message || 'Failed to delete contents.');
+      toast.error(err.response?.data?.message || t('profile.toast.deleteContentsFailed'));
     } finally {
       setDeletingAll(false);
     }
@@ -381,9 +383,9 @@ export default function ProfilePage() {
     return (
       <div className="flex flex-col items-center justify-center min-h-[300px] text-center">
         <Info className="h-10 w-10 text-zinc-500 mb-2" />
-        <p className="text-zinc-400">Profile not found</p>
+        <p className="text-zinc-400">{t('profile.notFound')}</p>
         <Button onClick={() => router.push('/feed')} className="mt-4 bg-zinc-800 hover:bg-zinc-700">
-          Go to Feed
+          {t('profile.goToFeed')}
         </Button>
       </div>
     );
@@ -416,7 +418,7 @@ export default function ProfilePage() {
       return (
         <div className="text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
           <Sparkles className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
-          <p className="text-zinc-500 text-sm">No artworks published yet.</p>
+          <p className="text-zinc-500 text-sm">{t('profile.emptyGrid')}</p>
         </div>
       );
     }
@@ -437,7 +439,7 @@ export default function ProfilePage() {
               />
               {item.isSigned && (
                 <div className="absolute top-2 right-2 bg-green-500/20 backdrop-blur-md text-green-400 border border-green-500/30 text-[9px] font-bold px-1.5 py-0.5 rounded-full flex items-center gap-0.5 z-10">
-                  <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> Signed
+                  <CheckCircle2 className="h-3 w-3 fill-green-500/10" /> {t('feed.badge.cryptographicSign')}
                 </div>
               )}
               <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-end justify-between p-4">
@@ -448,17 +450,17 @@ export default function ProfilePage() {
                   <button
                     onClick={(e) => handleHideSignedContent(e, item.id)}
                     className="bg-red-500/80 hover:bg-red-600 backdrop-blur-md text-white border border-red-500/30 text-[10px] font-bold px-2.5 py-1 rounded-lg flex items-center gap-1 transition-all duration-200 shadow-md hover:scale-105 z-20"
-                    title="Hide from my profile"
+                    title={t('profile.hideContent.title')}
                   >
                     <EyeOff className="h-3.5 w-3.5" />
-                    Hide
+                    {t('profile.hideContent')}
                   </button>
                 )}
               </div>
             </div>
             <div className="p-4 flex items-center justify-between border-t border-white/5">
               <span className="text-[10px] text-zinc-500 font-semibold uppercase tracking-wider">
-                Published Post
+                {t('profile.publishedPost')}
               </span>
               <button className="flex items-center gap-1.5 text-xs text-zinc-400 hover:text-rose-500 transition-colors">
                 <Heart className={`h-4 w-4 ${item.isLikedByCurrentUser ? 'fill-rose-500 text-rose-500' : ''}`} />
@@ -496,7 +498,7 @@ export default function ProfilePage() {
             {isOwnProfile && (
               <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 flex flex-col items-center justify-center transition-all duration-300 gap-1 text-xs font-semibold text-white">
                 <UploadCloud className="h-5 w-5" />
-                Change Photo
+                {t('profile.avatar.changePhoto')}
               </div>
             )}
             
@@ -515,18 +517,18 @@ export default function ProfilePage() {
                 {profile.displayName || profile.userName}
               </h1>
               {profile.isVerified && (
-                <span title="Verified Artist">
+                <span title={t('profile.verifiedArtist')}>
                   <CheckCircle2 className="h-5 w-5 text-sky-400 fill-sky-400/20" />
                 </span>
               )}
               {profile.isPremium && (
-                <span title="Premium Subscriber">
+                <span title={t('profile.premiumSubscriber')}>
                   <Award className="h-5 w-5 text-amber-400" />
                 </span>
               )}
               {profile.accountType === 1 && (
                 <span className="text-[10px] font-bold tracking-widest uppercase bg-violet-500/20 text-violet-300 border border-violet-500/30 px-2 py-0.5 rounded-full">
-                  Artist
+                  {t('profile.role.artistTag')}
                 </span>
               )}
             </div>
@@ -536,23 +538,23 @@ export default function ProfilePage() {
             <div className="flex items-center justify-center md:justify-start gap-6 text-sm text-zinc-300 mt-2 font-medium">
               <span className="flex items-center gap-1.5">
                 <Users className="h-4 w-4 text-zinc-400" />
-                <strong>{profile.followersCount}</strong> followers
+                <strong>{profile.followersCount}</strong> {t('profile.stats.followers')}
               </span>
               {profile.accountType !== 1 && (
                 <>
                   <span>
-                    <strong>{profile.followingCount}</strong> following
+                    <strong>{profile.followingCount}</strong> {t('profile.stats.following')}
                   </span>
-                  <span className="flex items-center gap-1.5" title="Number of unique artists this fan has received signatures from">
+                  <span className="flex items-center gap-1.5" title={t('profile.stats.collectorScore')}>
                     <Award className="h-4 w-4 text-amber-400" />
-                    <strong>{profile.signatureRequestCount}</strong> Collector Score
+                    <strong>{profile.signatureRequestCount}</strong> {t('profile.stats.collectorScore')}
                   </span>
                 </>
               )}
               {profile.accountType === 1 && (
-                <span className="flex items-center gap-1.5" title="Signature power score based on total autographed creations">
+                <span className="flex items-center gap-1.5" title={t('profile.stats.signaturePower')}>
                   <Sparkles className="h-4 w-4 text-amber-300 animate-pulse" />
-                  <strong>{profile.signatureRequestCount}</strong> Signature Power
+                  <strong>{profile.signatureRequestCount}</strong> {t('profile.stats.signaturePower')}
                 </span>
               )}
             </div>
@@ -560,7 +562,7 @@ export default function ProfilePage() {
             {/* Short Bio Description (Fan Profile) */}
             {profile.accountType !== 1 && (
               <p className="text-sm text-zinc-300 mt-3 max-w-xl leading-relaxed whitespace-pre-line text-center md:text-left">
-                {profile.bio || (isOwnProfile ? "No biography provided yet. Set a bio in edit profile." : "")}
+                {profile.bio || (isOwnProfile ? t('profile.bio.placeholderOwn') : "")}
               </p>
             )}
           </div>
@@ -575,7 +577,7 @@ export default function ProfilePage() {
                 className="bg-white/10 hover:bg-white/20 border border-white/10 text-white rounded-xl px-5 py-5 flex items-center gap-2 font-semibold transition-all duration-300 hover:shadow-lg hover:shadow-violet-600/10 cursor-pointer"
               >
                 <Edit3 className="h-4 w-4" />
-                Edit Profile
+                {t('profile.edit')}
               </Button>
               <Button 
                 onClick={handleLogout} 
@@ -584,7 +586,7 @@ export default function ProfilePage() {
                 id="profile-logout-btn"
               >
                 <LogOut className="h-4 w-4" />
-                Log Out
+                {t('profile.logout')}
               </Button>
             </>
           ) : (
@@ -599,11 +601,11 @@ export default function ProfilePage() {
             >
               {profile.isFollowing ? (
                 <span className="flex items-center gap-2">
-                  <UserCheck className="h-4 w-4" /> Following
+                  <UserCheck className="h-4 w-4" /> {t('profile.following')}
                 </span>
               ) : (
                 <span className="flex items-center gap-2">
-                  <UserPlus className="h-4 w-4" /> Follow
+                  <UserPlus className="h-4 w-4" /> {t('profile.follow')}
                 </span>
               )}
             </Button>
@@ -620,7 +622,7 @@ export default function ProfilePage() {
             <div className="flex items-center justify-between border-b border-white/10 pb-3">
               <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
                 <Award className="h-5 w-5 text-violet-400" />
-                Signed Top Content
+                {t('profile.signedTopContent')}
               </h3>
               {isOwnProfile && profile.contents && profile.contents.length > 0 && (
                 <Button
@@ -629,7 +631,7 @@ export default function ProfilePage() {
                   className="text-rose-400 hover:text-rose-300 hover:bg-rose-500/10 text-xs font-semibold px-3 py-1.5 rounded-xl cursor-pointer flex items-center gap-1.5"
                 >
                   <Trash2 className="h-4 w-4" />
-                  Delete All Content
+                  {t('profile.deleteAllContent')}
                 </Button>
               )}
             </div>
@@ -637,7 +639,7 @@ export default function ProfilePage() {
             {signedTopContents.length === 0 ? (
               <div className="text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
                 <Award className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
-                <p className="text-zinc-500 text-sm">No signed content yet.</p>
+                <p className="text-zinc-500 text-sm">{t('profile.noSignedContent')}</p>
               </div>
             ) : (
               renderContentGrid(signedTopContents)
@@ -650,14 +652,14 @@ export default function ProfilePage() {
               <div className="flex items-center justify-between border-b border-white/10 pb-3">
                 <h3 className="font-extrabold text-lg text-white flex items-center gap-2">
                   <Clock className="h-5 w-5 text-amber-400" />
-                  Requests in Review & Rejected
+                  {t('profile.requests.review.title')}
                 </h3>
               </div>
 
               {reviewContents.length === 0 ? (
                 <div className="text-center p-12 border border-dashed border-white/10 rounded-2xl bg-zinc-950/20">
                   <Clock className="h-8 w-8 text-zinc-600 mx-auto mb-2" />
-                  <p className="text-zinc-500 text-sm">No pending or rejected requests.</p>
+                  <p className="text-zinc-500 text-sm">{t('profile.requests.review.empty')}</p>
                 </div>
               ) : (
                 <div className="space-y-4">
@@ -681,16 +683,16 @@ export default function ProfilePage() {
                           </h4>
                           {req.status === 0 ? (
                             <span className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-amber-500/10 text-amber-400 border border-amber-500/20">
-                              <Clock className="h-3 w-3" /> In Review
+                              <Clock className="h-3 w-3" /> {t('profile.request.status.inReview')}
                             </span>
                           ) : (
                             <span className="flex-shrink-0 inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full text-[10px] font-bold bg-rose-500/10 text-rose-400 border border-rose-500/20">
-                              <XCircle className="h-3 w-3" /> Rejected
+                              <XCircle className="h-3 w-3" /> {t('profile.request.status.rejected')}
                             </span>
                           )}
                         </div>
                         <p className="text-xs text-zinc-400">
-                          Artist: <strong className="text-zinc-300">@{req.artistName}</strong>
+                          {t('profile.request.artist')}: <strong className="text-zinc-300">@{req.artistName}</strong>
                         </p>
                         {req.message && (
                           <p className="text-xs text-zinc-500 italic truncate mt-1">
@@ -713,17 +715,17 @@ export default function ProfilePage() {
               <TabsTrigger value="gallery" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
                 <span className="flex items-center gap-2">
                   <Sparkles className="h-4 w-4" />
-                  Top Collection
+                  {t('profile.topCollection')}
                 </span>
               </TabsTrigger>
               <TabsTrigger value="all-contents" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
                 <span className="flex items-center gap-2">
                   <Grid className="h-4 w-4" />
-                  All Content
+                  {t('profile.allContent')}
                 </span>
               </TabsTrigger>
               <TabsTrigger value="about" className="rounded-lg data-[state=active]:bg-zinc-900 text-sm font-semibold">
-                About
+                {t('profile.about')}
               </TabsTrigger>
             </TabsList>
             
@@ -740,24 +742,24 @@ export default function ProfilePage() {
                 <div className="space-y-3">
                   <h4 className="font-bold text-lg text-white flex items-center gap-2">
                     <UserIcon className="h-5 w-5 text-violet-400" />
-                    Biography
+                    {t('profile.biography')}
                   </h4>
                   <p className="text-zinc-400 text-sm leading-relaxed whitespace-pre-line">
-                    {profile.bio || "No biography provided yet. Set a bio in edit profile."}
+                    {profile.bio || t('profile.bio.placeholderOwn')}
                   </p>
                 </div>
 
                 <div className="border-t border-white/10 pt-4 flex items-center justify-between text-xs text-zinc-500">
                   <span className="flex items-center gap-1">
-                    <Calendar className="h-3.5 w-3.5" /> Member Since
+                    <Calendar className="h-3.5 w-3.5" /> {t('profile.memberSince')}
                   </span>
                   <span>June 2026</span>
                 </div>
 
                 <div className="border-t border-white/10 pt-4">
-                  <h4 className="text-white font-bold mb-2">Artist Information</h4>
+                  <h4 className="text-white font-bold mb-2">{t('profile.artistInformation')}</h4>
                   <p className="text-zinc-400 text-sm leading-relaxed">
-                    This account is verified as an official Autograph creator. Support them by following, liking, and requesting exclusive custom signatures.
+                    {t('profile.artistInfo.description')}
                   </p>
                 </div>
               </Card>
@@ -772,10 +774,10 @@ export default function ProfilePage() {
           <DialogHeader>
             <DialogTitle className="text-xl font-bold flex items-center gap-2">
               <Settings className="h-5 w-5 text-violet-400" />
-              Edit Profile Settings
+              {t('profile.editModal.title')}
             </DialogTitle>
             <DialogDescription className="text-zinc-400 text-xs">
-              Update your display name, biography details, and switch account type context.
+              {t('profile.editModal.description')}
             </DialogDescription>
           </DialogHeader>
 
@@ -783,13 +785,13 @@ export default function ProfilePage() {
             {/* Display Name Input */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                Display Name
+                {t('profile.editModal.displayName')}
               </label>
               <Input
                 type="text"
                 value={editDisplayName}
                 onChange={(e) => setEditDisplayName(e.target.value)}
-                placeholder="Ex. John Doe"
+                placeholder={t('profile.editModal.displayNamePlaceholder')}
                 className="h-11 border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
               />
             </div>
@@ -797,12 +799,12 @@ export default function ProfilePage() {
             {/* Bio Textarea */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                Bio Description
+                {t('profile.editModal.bio')}
               </label>
               <Textarea
                 value={editBio}
                 onChange={(e) => setEditBio(e.target.value)}
-                placeholder="Tell the community about yourself..."
+                placeholder={t('profile.editModal.bioPlaceholder')}
                 className="min-h-[100px] border-white/10 bg-black/40 text-white placeholder:text-zinc-600 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
               />
             </div>
@@ -810,7 +812,7 @@ export default function ProfilePage() {
             {/* Account Type Option Selection */}
             <div className="space-y-1.5">
               <label className="text-xs font-bold uppercase tracking-wider text-zinc-400">
-                Account Level / Type
+                {t('profile.editModal.accountType')}
               </label>
               <div className="grid grid-cols-2 gap-2 mt-1">
                 <button
@@ -823,7 +825,7 @@ export default function ProfilePage() {
                   }`}
                 >
                   <UserIcon className="h-5 w-5 mb-1 text-violet-400" />
-                  <span className="text-xs font-bold">Fan Account</span>
+                  <span className="text-xs font-bold">{t('profile.editModal.fanAccount')}</span>
                 </button>
                 <button
                   type="button"
@@ -835,7 +837,7 @@ export default function ProfilePage() {
                   }`}
                 >
                   <Award className="h-5 w-5 mb-1 text-fuchsia-400" />
-                  <span className="text-xs font-bold">Artist Account</span>
+                  <span className="text-xs font-bold">{t('profile.editModal.artistAccount')}</span>
                 </button>
               </div>
             </div>
@@ -848,7 +850,7 @@ export default function ProfilePage() {
               onClick={() => setIsEditOpen(false)}
               className="text-zinc-400 hover:text-white cursor-pointer"
             >
-              Cancel
+              {t('profile.editModal.cancel')}
             </Button>
             <Button
               type="button"
@@ -858,10 +860,10 @@ export default function ProfilePage() {
             >
               {savingProfile ? (
                 <span className="flex items-center gap-1.5">
-                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> Saving...
+                  <Loader2 className="h-3.5 w-3.5 animate-spin" /> {t('profile.editModal.saving')}
                 </span>
               ) : (
-                'Save Changes'
+                t('profile.editModal.save')
               )}
             </Button>
           </DialogFooter>
@@ -876,10 +878,10 @@ export default function ProfilePage() {
               <Trash2 className="h-5 w-5" />
             </div>
             <DialogTitle className="text-lg font-bold text-white mt-4 text-center">
-              Tüm İçerikleri Sil
+              {t('profile.deleteConfirm.title')}
             </DialogTitle>
             <DialogDescription className="text-zinc-400 text-sm text-center mt-2 leading-relaxed">
-              Tüm içeriklerinizi silmek istediğinize emin misiniz? Bu işlem geri alınamaz ve tüm imzalı içerikleriniz kalıcı olarak silinecektir.
+              {t('profile.deleteConfirm.description')}
             </DialogDescription>
           </DialogHeader>
 
@@ -891,7 +893,7 @@ export default function ProfilePage() {
               disabled={deletingAll}
               className="flex-1 py-5 rounded-xl border border-white/10 text-zinc-400 hover:text-white hover:bg-white/5 active:scale-95 transition-all text-xs font-semibold cursor-pointer"
             >
-              İptal
+              {t('profile.deleteConfirm.cancel')}
             </Button>
             <Button
               type="button"
@@ -902,12 +904,12 @@ export default function ProfilePage() {
               {deletingAll ? (
                 <>
                   <Loader2 className="h-3.5 w-3.5 animate-spin" />
-                  Siliniyor...
+                  {t('profile.deleteConfirm.deleting')}
                 </>
               ) : (
                 <>
                   <Trash2 className="h-3.5 w-3.5" />
-                  Tümünü Sil
+                  {t('profile.deleteConfirm.confirm')}
                 </>
               )}
             </Button>

@@ -10,7 +10,9 @@ import { Eye, EyeOff, Loader2, Sparkles, User, Lock } from 'lucide-react';
 import Link from 'next/link';
 
 import { useAuthStore } from '@/store/authStore';
+import { useLanguageStore } from '@/store/languageStore';
 import { api } from '@/lib/api';
+import { useI18n } from '@/components/providers/I18nProvider';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
 import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card';
@@ -25,6 +27,8 @@ type LoginFormValues = z.infer<typeof loginSchema>;
 export default function LoginPage() {
   const router = useRouter();
   const setAuth = useAuthStore((state) => state.setAuth);
+  const setLanguage = useLanguageStore((state) => state.setLanguage);
+  const { t } = useI18n();
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
@@ -69,12 +73,15 @@ export default function LoginPage() {
             displayName: profile.displayName || undefined,
             avatarUrl: profile.avatarUrl || undefined,
             bio: profile.bio || undefined,
+            preferredLanguage: profile.preferredLanguage || 'en',
             accountType: profile.accountType,
             isVerified: profile.isVerified,
             isPremium: profile.isPremium,
           });
 
-          toast.success(`Welcome back, ${profile.displayName || profile.userName}!`);
+          setLanguage(profile.preferredLanguage === 'tr' ? 'tr' : 'en');
+
+          toast.success(t('auth.welcomeBack', { name: profile.displayName || profile.userName }));
           router.push('/feed');
         } else {
           throw new Error('Failed to retrieve profile data.');
@@ -112,16 +119,16 @@ export default function LoginPage() {
             AUTOGRAPH
           </h2>
           <p className="mt-2 text-sm text-zinc-400">
-            Exclusive Digital Collectibles & Signatures
+            {t('auth.loginSubtitle')}
           </p>
         </Link>
 
         {/* Glassmorphic Login Card */}
         <Card className="border-white/10 bg-zinc-900/40 backdrop-blur-xl shadow-2xl">
           <CardHeader>
-            <CardTitle className="text-xl font-bold text-white">Sign In</CardTitle>
+            <CardTitle className="text-xl font-bold text-white">{t('auth.signInTitle')}</CardTitle>
             <CardDescription className="text-zinc-400">
-              Enter your credentials to access your account
+              {t('auth.signInDescription')}
             </CardDescription>
           </CardHeader>
           <form onSubmit={handleSubmit(onSubmit)}>
@@ -129,7 +136,7 @@ export default function LoginPage() {
               {/* Username Input */}
               <div className="space-y-1.5">
                 <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                  Username
+                  {t('auth.username')}
                 </label>
                 <div className="relative">
                   <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none text-zinc-500">
@@ -138,7 +145,7 @@ export default function LoginPage() {
                   <Input
                     {...register('username')}
                     type="text"
-                    placeholder="Enter your username"
+                    placeholder={t('auth.usernamePlaceholder')}
                     className="pl-10 h-11 border-white/10 bg-black/40 text-white placeholder:text-zinc-500 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
                     aria-invalid={errors.username ? 'true' : 'false'}
                   />
@@ -154,7 +161,7 @@ export default function LoginPage() {
               <div className="space-y-1.5">
                 <div className="flex items-center justify-between">
                   <label className="text-xs font-semibold uppercase tracking-wider text-zinc-400">
-                    Password
+                    {t('auth.password')}
                   </label>
                 </div>
                 <div className="relative">
@@ -164,7 +171,7 @@ export default function LoginPage() {
                   <Input
                     {...register('password')}
                     type={showPassword ? 'text' : 'password'}
-                    placeholder="••••••••"
+                    placeholder={t('auth.passwordPlaceholder')}
                     className="pl-10 pr-10 h-11 border-white/10 bg-black/40 text-white placeholder:text-zinc-500 focus-visible:border-violet-500 focus-visible:ring-violet-500/30"
                     aria-invalid={errors.password ? 'true' : 'false'}
                   />
@@ -192,20 +199,20 @@ export default function LoginPage() {
               >
                 {isLoading ? (
                   <span className="flex items-center justify-center gap-2">
-                    <Loader2 className="h-4 w-4 animate-spin" /> Signing In...
+                    <Loader2 className="h-4 w-4 animate-spin" /> {t('auth.signingIn')}
                   </span>
                 ) : (
-                  'Sign In'
+                  t('auth.signIn')
                 )}
               </Button>
 
               <div className="text-center text-xs text-zinc-500">
-                Don&apos;t have an account?{' '}
+                {t('auth.noAccount')}{' '}
                 <Link
                   href="/register"
                   className="font-semibold text-violet-400 hover:text-violet-300 hover:underline transition-colors"
                 >
-                  Create one now
+                  {t('auth.createAccount')}
                 </Link>
               </div>
             </CardFooter>

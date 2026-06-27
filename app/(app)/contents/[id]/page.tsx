@@ -32,6 +32,7 @@ import {
   DialogTrigger,
 } from '@/components/ui/dialog';
 import { Textarea } from '@/components/ui/textarea';
+import { useI18n } from '@/components/providers/I18nProvider';
 
 interface SignatureDto {
   id: string;
@@ -64,6 +65,7 @@ interface ContentDetailDto {
 export default function ContentDetailPage() {
   const params = useParams();
   const router = useRouter();
+  const { t } = useI18n();
   const { user: currentUser } = useAuthStore();
   
   const [content, setContent] = useState<ContentDetailDto | null>(null);
@@ -89,11 +91,11 @@ export default function ContentDetailPage() {
         setContent(data);
         setLikeCount(data.likeCount);
       } else {
-        toast.error('Failed to load artwork details.');
+        toast.error(t('content.page.error.loadDetails'));
       }
     } catch (err: any) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Error fetching content details.');
+      toast.error(err.response?.data?.message || t('content.page.error.fetchDetails'));
     } finally {
       setLoading(false);
     }
@@ -150,20 +152,20 @@ export default function ContentDetailPage() {
   const handleLike = async () => {
     setIsLiked(!isLiked);
     setLikeCount((prev) => (isLiked ? prev - 1 : prev + 1));
-    toast.success(isLiked ? 'Artwork unliked' : 'Artwork liked!');
+    toast.success(isLiked ? t('content.page.unliked') : t('content.page.liked'));
   };
 
   const handleCopyHash = () => {
     if (content?.signature?.hash) {
       navigator.clipboard.writeText(content.signature.hash);
-      toast.success('SHA-256 verification hash copied!');
+      toast.success(t('content.page.hashCopied'));
     }
   };
 
   const handleSendSignatureRequest = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!content || !selectedArtistId) {
-      toast.error('Please select an artist.');
+      toast.error(t('content.page.selectArtistRequired'));
       return;
     }
 
@@ -177,16 +179,16 @@ export default function ContentDetailPage() {
       });
 
       if (response.data?.success) {
-        toast.success('Signature request sent successfully!');
+        toast.success(t('content.page.requestSent'));
         setIsDialogOpen(false);
         setRequestMessage('');
         fetchSignatureRequest();
       } else {
-        toast.error(response.data?.message || 'Failed to send request.');
+        toast.error(response.data?.message || t('content.page.error.sendRequest'));
       }
     } catch (err: any) {
       console.error(err);
-      toast.error(err.response?.data?.message || 'Failed to send signature request.');
+      toast.error(err.response?.data?.message || t('content.page.error.sendSignatureRequest'));
     } finally {
       setIsRequesting(false);
     }
@@ -196,7 +198,7 @@ export default function ContentDetailPage() {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center text-zinc-400">
         <Loader2 className="h-8 w-8 animate-spin text-violet-500 mb-4" />
-        <p className="text-sm">Retrieving digital asset details...</p>
+        <p className="text-sm">{t('content.page.retrieving')}</p>
       </div>
     );
   }
@@ -204,9 +206,9 @@ export default function ContentDetailPage() {
   if (!content) {
     return (
       <div className="flex h-[60vh] flex-col items-center justify-center text-center p-6 bg-zinc-950/40 rounded-3xl border border-white/5">
-        <p className="text-zinc-500 text-sm mb-4">The artwork you are looking for does not exist or has been removed.</p>
+        <p className="text-zinc-500 text-sm mb-4">{t('content.page.missing')}</p>
         <Button onClick={() => router.push('/feed')} className="bg-zinc-800 hover:bg-zinc-700 cursor-pointer">
-          Back to Feed
+          {t('content.page.backToFeed')}
         </Button>
       </div>
     );
@@ -219,13 +221,13 @@ export default function ContentDetailPage() {
           <h1 className="text-3xl font-extrabold text-white flex items-center gap-2">
             {content.title}
           </h1>
-          <p className="text-zinc-500 text-sm">Uploaded on {new Date(content.createdDate).toLocaleDateString()}</p>
+          <p className="text-zinc-500 text-sm">{t('content.page.uploadedOn', { date: new Date(content.createdDate).toLocaleDateString() })}</p>
         </div>
         <div className="flex items-center gap-2">
           {content.isSigned && (
             <Badge className="bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 px-3 py-1 flex items-center gap-1.5 text-xs font-semibold rounded-full uppercase">
               <ShieldCheck className="h-3.5 w-3.5" />
-              Verified Autographed
+              {t('content.page.verifiedAutographed')}
             </Badge>
           )}
         </div>
@@ -257,7 +259,7 @@ export default function ContentDetailPage() {
           </div>
           <div className="flex justify-between items-center bg-zinc-950/40 p-3 rounded-xl border border-white/5">
             <span className="text-xs text-zinc-500">
-              {content.isSigned ? 'Viewing watermarked copy' : 'Viewing original upload'}
+              {content.isSigned ? t('content.page.viewingWatermarked') : t('content.page.viewingOriginal')}
             </span>
             {content.isSigned && content.signature && (
               <Button 
@@ -266,7 +268,7 @@ export default function ContentDetailPage() {
                 className="h-8 text-xs border-white/10 hover:bg-white/5 cursor-pointer"
                 onClick={() => window.open(content.signature?.watermarkUrl, '_blank')}
               >
-                <Download className="h-3.5 w-3.5 mr-1" /> Download Copy
+                <Download className="h-3.5 w-3.5 mr-1" /> {t('content.page.downloadCopy')}
               </Button>
             )}
           </div>
@@ -285,7 +287,7 @@ export default function ContentDetailPage() {
                   </AvatarFallback>
                 </Avatar>
                 <div>
-                  <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider block">Created By</span>
+                  <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider block">{t('content.page.createdBy')}</span>
                   <span className="text-white font-bold text-sm hover:underline cursor-pointer">
                     {content.creatorName}
                   </span>
@@ -297,7 +299,7 @@ export default function ContentDetailPage() {
                 onClick={() => router.push(`/profile/${content.creatorName}`)}
                 className="border-white/10 text-xs hover:bg-white/5 cursor-pointer"
               >
-                View Profile
+                {t('content.page.viewProfile')}
               </Button>
             </CardContent>
           </Card>
@@ -306,9 +308,9 @@ export default function ContentDetailPage() {
           <Card className="border-white/10 bg-zinc-950/60 backdrop-blur-md">
             <CardContent className="p-5 space-y-4">
               <div className="space-y-1">
-                <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider block">About the Asset</span>
+                <span className="text-xs text-zinc-500 font-bold uppercase tracking-wider block">{t('content.page.about')}</span>
                 <p className="text-zinc-300 text-sm leading-relaxed">
-                  {content.description || 'No description provided.'}
+                  {content.description || t('content.page.noDescription')}
                 </p>
               </div>
 
@@ -321,11 +323,11 @@ export default function ContentDetailPage() {
                   }`}
                 >
                   <Heart className={`h-5 w-5 ${isLiked ? 'fill-rose-500' : ''}`} />
-                  <strong>{likeCount} Likes</strong>
+                  <strong>{t('content.page.likes', { count: String(likeCount) })}</strong>
                 </Button>
                 <Button variant="ghost" className="h-9 px-3 gap-1.5 text-zinc-400 hover:text-white hover:bg-white/5 rounded-lg cursor-pointer">
                   <Share2 className="h-5 w-5" />
-                  Share
+                  {t('content.page.share')}
                 </Button>
               </div>
             </CardContent>
